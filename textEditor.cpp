@@ -92,9 +92,10 @@ void UpdateCaretPosition(HWND hwnd){
             scrollOffsetX = x - clientRect.right + 3;
         }
     //Vertical autoscroll
-    if(caretLine<scrollOffsetY){
+    int bufferZone = 2;
+    if(caretLine<scrollOffsetY+bufferZone){
         if((caretLine<=1)){
-            scrollOffsetY =0;
+            scrollOffsetY =  0;
         }else{
             scrollOffsetY = caretLine-2;
         }
