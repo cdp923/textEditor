@@ -1,7 +1,7 @@
-#include "textEditorGlobals.h" // Include its own header
+#include "textEditorGlobals.h" 
 
-// Define the global variables
-std::vector<std::wstring> textBuffer; // The text content of the editor
+
+std::vector<std::wstring> textBuffer; 
 int caretLine = 0;
 int caretCol = 0;
 int scrollOffsetY = 0; // Vertical scroll offset (in lines)

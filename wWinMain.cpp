@@ -27,7 +27,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 
     WNDCLASS wc={};
     //ZeroMemory(&wc, sizeof(WNDCLASS));
-    wc.lpfnWndProc = WindowProc;
+    wc.lpfnWndProc = WindowProc;    //This is how it communicates with WindowProc
     wc.hInstance = hInstance;
     wc.lpszClassName = CLASS_NAME;
 
