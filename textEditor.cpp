@@ -15,6 +15,7 @@
 
 
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+void UpdateScrollBars(HWND hwnd);
 
 std::vector<std::wstring> textBuffer;
 
@@ -77,19 +78,31 @@ void UpdateCaretPosition(HWND hwnd){
     HFONT hOldFont = (HFONT)SelectObject(hdc, font);
     int x=0;
     if(caretLine<textBuffer.size()){
-        if (caretCol<=textBuffer[caretLine].length())
-        {
         SIZE size;
         // Get the width of the text up to the cursor position to ensure accurate X axis cursor movement
         GetTextExtentPoint32W(hdc, textBuffer[caretLine].c_str(), caretCol, &size);
         x = size.cx;
-        }else if (caretCol>textBuffer[caretLine].length()){
-        SIZE size;
-        // Get the width of the text up to the cursor position to ensure accurate X axis cursor movement
-        GetTextExtentPoint32W(hdc, textBuffer[caretLine].c_str(), caretCol, &size);
-        x = size.cx;
-        }
     }
+    RECT clientRect;
+    GetClientRect(hwnd, &clientRect);
+    //horizontal auto scroll
+    if(x<=scrollOffsetX+3){
+        scrollOffsetX = std::max(0, x - 3);
+    }else if (x > scrollOffsetX + clientRect.right - 3) {
+            scrollOffsetX = x - clientRect.right + 3;
+        }
+    //Vertical autoscroll
+    if(caretLine<scrollOffsetY){
+        if((caretLine<=1)){
+            scrollOffsetY =0;
+        }else{
+            scrollOffsetY = caretLine-2;
+        }
+    }else if(caretLine >=scrollOffsetY + linesPerPage){
+        scrollOffsetY = caretLine - linesPerPage+1;
+    }
+    UpdateScrollBars(hwnd);
+    InvalidateRect(hwnd, NULL, TRUE);
     x-=scrollOffsetX;
     int y = (caretLine - scrollOffsetY)*charHeight;
     SetCaretPos(x,y);
@@ -336,10 +349,6 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam){
                         if(caretCol>textBuffer[caretLine].length()){
                             caretCol = textBuffer[caretLine].length();
                         }
-                        if(caretLine >=scrollOffsetY + linesPerPage){
-                            scrollOffsetY = caretLine - linesPerPage+1;
-                            InvalidateRect(hwnd, NULL, TRUE); // Redraw
-                        }
                     }else if (caretLine >= textBuffer.size()) {
                         textBuffer.resize(caretLine + 1);
                         caretLine++;
@@ -351,10 +360,6 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam){
                         caretLine--;
                         if (caretCol>textBuffer[caretLine].length()){
                             caretCol = textBuffer[caretLine].length();
-                        }
-                        if(caretLine <scrollOffsetY){
-                            scrollOffsetY = caretLine;
-                            InvalidateRect(hwnd, NULL, TRUE); // Redraw
                         }
                     }
                     break;
