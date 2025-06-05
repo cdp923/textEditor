@@ -12,9 +12,20 @@
 #include <string>     // For std::wstring
 #include <strsafe.h>
 
+#include <iostream>
 
 
+/*
+Terminal commands
+cd ..
+cd ..
+cd projects/textEditor
+g++ textEditor.cpp -o textEditor.exe -mwindows -municode
+textEditor.exe
+*/
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+void calcTextMetrics(HWND hwnd);
+void UpdateCaretPosition(HWND hwnd);
 void UpdateScrollBars(HWND hwnd);
 
 std::vector<std::wstring> textBuffer;
@@ -63,7 +74,7 @@ void calcTextMetrics(HWND hwnd){
     for (const auto& line : textBuffer) {
         GetTextExtentPoint32W(hdc, line.c_str(), line.length(), &size);
         if (size.cx > maxLineWidthPixels) {
-            maxLineWidthPixels = size.cx+3;
+            maxLineWidthPixels = size.cx;
         }
     }
     maxLineWidthPixels = std::max(maxLineWidthPixels, (int)clientRect.right); // Ensure at least client width
@@ -86,10 +97,11 @@ void UpdateCaretPosition(HWND hwnd){
     RECT clientRect;
     GetClientRect(hwnd, &clientRect);
     //horizontal auto scroll
-    if(x<=scrollOffsetX+3){
-        scrollOffsetX = std::max(0, x - 3);
-    }else if (x > scrollOffsetX + clientRect.right - 3) {
-            scrollOffsetX = x - clientRect.right + 3;
+    int padding = 5;
+    if(x<=scrollOffsetX+padding){
+        scrollOffsetX = std::max(0, x - padding);
+    }else if (x > scrollOffsetX + clientRect.right - padding) {
+            scrollOffsetX = x - clientRect.right + padding;
         }
     //Vertical autoscroll
     int bufferZone = 2;
@@ -334,10 +346,13 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam){
                 case VK_RIGHT:{
                     if(caretCol<textBuffer[caretLine].length()){
                         caretCol++;
-                    }else if (caretLine<textBuffer.size()){
+                    }else if (caretLine<textBuffer.size()-1){
+                        caretCol++; 
                         caretLine++;
                         caretCol = 0;
-                    }else if (caretLine == textBuffer.size()){
+                    }
+                    //makes right arrow navigate past last line
+                    else if (caretLine == textBuffer.size()){
                         textBuffer.resize(caretLine + 1);
                         caretLine++;
                         caretCol = 0;
