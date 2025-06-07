@@ -54,7 +54,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam){
         case WM_SETFOCUS:
         {
             UpdateCaretPosition(hwnd); // Ensure caret is at correct position in case window was resized
-            ShowCaret(hwnd); // Make the caret visible when the window gains focus
+            //ShowCaret(hwnd); // Make the caret visible when the window gains focus
             break;
         }
         case WM_KILLFOCUS:
@@ -125,7 +125,8 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam){
                         caretCol++; 
                         break;
                     }
-                } 
+                }
+                trackCaret = true; 
                 calcTextMetrics(hwnd);
                 UpdateScrollBars(hwnd);
                 //Update display after any textBuffer or caret position change
@@ -137,6 +138,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam){
         case WM_KEYDOWN:{
             switch (wParam){
                 case VK_LEFT:{
+                    trackCaret = true; 
                     if(caretCol>0){
                         caretCol--;
                     }else if (caretLine>0){
@@ -146,6 +148,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam){
                     break;
                 }
                 case VK_RIGHT:{
+                    trackCaret = true; 
                     if(caretCol<textBuffer[caretLine].length()){
                         caretCol++;
                     }else if (caretLine<textBuffer.size()-1){
@@ -156,6 +159,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam){
                     break;
                 }
                 case VK_DOWN:{
+                    trackCaret = true; 
                     if (caretLine <= textBuffer.size()){
                         caretLine++;
                         if(caretCol>textBuffer[caretLine].length()){
@@ -168,6 +172,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam){
                     break;
                 }
                 case VK_UP:{
+                    trackCaret = true; 
                     if (caretLine >0){
                         caretLine--;
                         if (caretCol>textBuffer[caretLine].length()){
@@ -185,138 +190,17 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam){
         }
         case WM_MOUSEWHEEL:
         {
-            short zDelta = GET_WHEEL_DELTA_WPARAM(wParam);
-            DWORD fwKeys = GET_KEYSTATE_WPARAM(wParam); // Get state of Ctrl, Shift, etc.
-
-            if (fwKeys & MK_SHIFT) { // Check if Shift key is pressed for horizontal scroll
-                int oldScrollOffsetX = scrollOffsetX;
-                int pixelsToScroll = zDelta; // Or zDelta / WHEEL_DELTA * some_pixel_amount, e.g., charWidth * 3
-
-                scrollOffsetX -= pixelsToScroll; // Adjust based on wheel direction
-
-                // Clamp scrollOffsetX to valid range
-                RECT clientRect;
-                GetClientRect(hwnd, &clientRect);
-                int maxPossibleScrollX = std::max(0, (int)(maxLineWidthPixels - clientRect.right));
-                scrollOffsetX = std::max(0, std::min(scrollOffsetX, maxPossibleScrollX));
-
-                if (scrollOffsetX != oldScrollOffsetX) {
-                    UpdateScrollBars(hwnd);
-                    ScrollWindowEx(hwnd, (oldScrollOffsetX - scrollOffsetX), 0,
-                                NULL, NULL, NULL, NULL, SW_INVALIDATE | SW_ERASE);
-                    UpdateCaretPosition(hwnd);
-                }
-            } else { // Normal vertical scrolling
-                int linesToScroll = zDelta / WHEEL_DELTA * 3;
-                int oldScrollOffsetY = scrollOffsetY;
-
-                scrollOffsetY -= linesToScroll;
-                scrollOffsetY = std::max(0, scrollOffsetY);
-                scrollOffsetY =std:: min(scrollOffsetY, std::max(0, (int)textBuffer.size() - linesPerPage));
-
-                if (scrollOffsetY != oldScrollOffsetY) {
-                    UpdateScrollBars(hwnd);
-                    ScrollWindowEx(hwnd, 0, (oldScrollOffsetY - scrollOffsetY) * charHeight,
-                                NULL, NULL, NULL, NULL, SW_INVALIDATE | SW_ERASE);
-                    UpdateCaretPosition(hwnd);
-                }
-            }
+            HandleMouseWheelScroll(hwnd, wParam);
             return 0;
         }
         case WM_VSCROLL:
         {
-            int nScrollCode = LOWORD(wParam); // SB_LINEUP, SB_LINEDOWN, SB_THUMBPOSITION, etc.
-            int nPos = HIWORD(wParam);        // Thumb position for SB_THUMBPOSITION
-            int oldScrollOffsetY = scrollOffsetY;
-
-            switch (nScrollCode) {
-                case SB_LINEUP: // Up arrow
-                    scrollOffsetY--;
-                    break;
-                case SB_LINEDOWN: // Down arrow
-                    scrollOffsetY++;
-                    break;
-                case SB_THUMBPOSITION: // Dragging the thumb
-                case SB_THUMBTRACK: // Real-time dragging
-                    scrollOffsetY = nPos;
-                    break;
-                case SB_PAGEUP: // Page Up key or click in scroll area above thumb
-                    scrollOffsetY -= linesPerPage;
-                    break;
-                case SB_PAGEDOWN: // Page Down key or click in scroll area below thumb
-                    scrollOffsetY += linesPerPage;
-                    break;
-            }
-
-            // Clamp scrollOffsetY
-            SCROLLINFO si;
-            si.cbSize = sizeof(si);
-            si.fMask = SIF_RANGE | SIF_PAGE;
-            GetScrollInfo(hwnd, SB_HORZ, &si);
-            scrollOffsetY = std::max(0, std::min(scrollOffsetY, (int)si.nMax - (int)si.nPage + 1));
-
-            if (scrollOffsetY != oldScrollOffsetY) {
-                // Update scroll bar position using SetScrollInfo
-                SCROLLINFO si_update;
-                si_update.cbSize = sizeof(si_update);
-                si_update.fMask = SIF_POS;
-                si_update.nPos = scrollOffsetY;
-                SetScrollInfo(hwnd, SB_HORZ, &si_update, TRUE);
-
-                ScrollWindowEx(hwnd, (oldScrollOffsetY - scrollOffsetY), 0,
-                            NULL, NULL, NULL, NULL, SW_INVALIDATE | SW_ERASE);
-                UpdateCaretPosition(hwnd);
-            }
+            HandleVerticalScroll(hwnd, wParam);
             return 0;
         }
         case WM_HSCROLL:
         {
-            RECT clientRect;
-            GetClientRect(hwnd, &clientRect);
-            int nScrollCode = LOWORD(wParam);
-            int nPos = HIWORD(wParam);
-            int oldScrollOffsetX = scrollOffsetX;
-
-            switch (nScrollCode) {
-                case SB_LINELEFT:
-                    scrollOffsetX -= charWidth;
-                    break;
-                case SB_LINERIGHT:
-                    scrollOffsetX += charWidth;
-                    break;
-                case SB_THUMBPOSITION:
-                case SB_THUMBTRACK:
-                    scrollOffsetX = nPos;
-                    break;
-                case SB_PAGELEFT:
-                    // Scroll by a "page" (client width or a fixed amount, i'll decide later)
-                    scrollOffsetX -= clientRect.right;
-                    break;
-                case SB_PAGERIGHT:
-                    // Scroll by a "page" (client width or a fixed amount, i'll decide later)
-                    scrollOffsetX += clientRect.right;
-                    break;
-            }
-
-            // Clamp scrollOffsetX
-            SCROLLINFO si;
-            si.cbSize = sizeof(si);
-            si.fMask = SIF_RANGE | SIF_PAGE;
-            GetScrollInfo(hwnd, SB_HORZ, &si);
-            scrollOffsetX = std::max(0, std::min(scrollOffsetX, (int)si.nMax - (int)si.nPage + 1));
-
-            if (scrollOffsetX != oldScrollOffsetX) {
-                // Update scroll bar position using SetScrollInfo
-                SCROLLINFO si_update;
-                si_update.cbSize = sizeof(si_update);
-                si_update.fMask = SIF_POS;
-                si_update.nPos = scrollOffsetX;
-                SetScrollInfo(hwnd, SB_HORZ, &si_update, TRUE);
-
-                ScrollWindowEx(hwnd, (oldScrollOffsetX - scrollOffsetX), 0,
-                            NULL, NULL, NULL, NULL, SW_INVALIDATE | SW_ERASE);
-                UpdateCaretPosition(hwnd);
-            }
+            HandleHorizontalScroll(hwnd, wParam);
             return 0;
         }
 

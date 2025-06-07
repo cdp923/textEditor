@@ -12,3 +12,7 @@ extern int caretCol;
 extern int scrollOffsetY;
 extern int scrollOffsetX;
 extern int maxLineWidthPixels;
+extern bool trackCaret; 
+extern int caretHiddenCount;
+extern int padding;
+extern int bufferZone;

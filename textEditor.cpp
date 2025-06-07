@@ -34,7 +34,10 @@ int caretCol = 0;
 int scrollOffsetY = 0; 
 int scrollOffsetX = 0; 
 int maxLineWidthPixels = 0;
-bool userScrolling = true; //scroll bars not working because autoscroll
+bool trackCaret = true; //scroll bars not working because autoscroll
+int caretHiddenCount = 0;
+int padding = 3;
+int bufferZone = 2;
 
 //text variables
 HFONT font = NULL; 
@@ -83,49 +86,87 @@ void calcTextMetrics(HWND hwnd){
     ReleaseDC(hwnd, hdc); // Release the device context
 }
 
-void UpdateCaretPosition(HWND hwnd){
+void UpdateCaretPosition(HWND hwnd) {
     HDC hdc = GetDC(hwnd);
     HFONT hOldFont = (HFONT)SelectObject(hdc, font);
-    int x=0;
-    if(caretLine<textBuffer.size()){
+    
+    int x = 0;
+    if (caretLine < textBuffer.size()) {
         SIZE size;
-        // Get the width of the text up to the cursor position to ensure accurate X axis cursor movement
         GetTextExtentPoint32W(hdc, textBuffer[caretLine].c_str(), caretCol, &size);
         x = size.cx;
     }
+    
     RECT clientRect;
     GetClientRect(hwnd, &clientRect);
-    //horizontal auto scroll
-    if(userScrolling){
-        ShowCaret(hwnd);
-    }
-    if(!userScrolling){
-        int padding = 5;
-        if(x<=scrollOffsetX+padding){
+    if (trackCaret){
+    // Horizontal auto-scroll
+        if (x <= scrollOffsetX + padding) {
             scrollOffsetX = std::max(0, x - padding);
-        }else if (x > scrollOffsetX + clientRect.right - padding) {
-                scrollOffsetX = x - clientRect.right + padding;
-            }
-        //Vertical autoscroll
-        int bufferZone = 2;
-        if(caretLine<scrollOffsetY+bufferZone){
-            if((caretLine<=1)){
-                scrollOffsetY =  0;
-            }else{
-                scrollOffsetY = caretLine-2;
-            }
-        }else if(caretLine >=scrollOffsetY + linesPerPage){
-            scrollOffsetY = caretLine - linesPerPage+1;
         }
-    }else{HideCaret(hwnd);}
+        else if (x > scrollOffsetX + clientRect.right - padding) {
+            scrollOffsetX = x - clientRect.right + padding;
+        }
+        
+        // Vertical auto-scroll
+        if (caretLine < scrollOffsetY + bufferZone) {
+            if ((caretLine <= 1)) {
+                scrollOffsetY = 0;
+            }
+            else {
+                scrollOffsetY = caretLine - bufferZone;
+            }
+        }
+        else if (caretLine >= scrollOffsetY + linesPerPage) {
+            scrollOffsetY = caretLine - linesPerPage + 1;
+        }
+        x -= scrollOffsetX;
+        int y = (caretLine - scrollOffsetY) * charHeight;
+
+        caretHiddenCount = 0;
+    
+        // Determine if caret should be visible
+        
+        // Set caret position and visibility
+        SetCaretPos(x, y);
+        ShowCaret(hwnd);
+        
+    }else{
+            
+            x = x-scrollOffsetX;
+            int y = (caretLine - scrollOffsetY) * charHeight;
+            bool caretVisible = (y >= 0 && y < clientRect.bottom) && 
+                        (x >= 0 && x< clientRect.right);
+            if (!caretVisible&&caretHiddenCount==0){
+                HideCaret(hwnd);
+                caretHiddenCount ++;
+            }else{
+                SetCaretPos(x, y);
+                ShowCaret(hwnd);
+                
+            }
+        
+    }
+
+    /*
+    // Calculate screen position
+    x -= scrollOffsetX;
+    int y = (caretLine - scrollOffsetY) * charHeight;
+    
+    // Update scroll bars
     UpdateScrollBars(hwnd);
+    
+    // Determine if caret should be visible
+    
+    // Set caret position and visibility
+    SetCaretPos(x, y);
+    */
+    UpdateScrollBars(hwnd);
+    // Force redraw if needed
     InvalidateRect(hwnd, NULL, TRUE);
-    x-=scrollOffsetX;
-    int y = (caretLine - scrollOffsetY)*charHeight;
-    SetCaretPos(x,y);
+    
     SelectObject(hdc, hOldFont);
     ReleaseDC(hwnd, hdc);
-
 }
 void UpdateScrollBars(HWND hwnd) {
     RECT clientRect;
@@ -243,7 +284,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam){
         case WM_SETFOCUS:
         {
             UpdateCaretPosition(hwnd); // Ensure caret is at correct position in case window was resized
-            ShowCaret(hwnd); // Make the caret visible when the window gains focus
+            //ShowCaret(hwnd); // Make the caret visible when the window gains focus
             break;
         }
         case WM_KILLFOCUS:
@@ -260,7 +301,6 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam){
         case WM_CHAR:
         {
             wchar_t ch = (wchar_t)wParam;
-            userScrolling = false;
             // Ensure we are within valid line bounds AND process valid input characters
             if (ch >= 32 || ch == L'\t' || ch == L'\r' || ch == L'\b') {
                 if (caretLine >= textBuffer.size()) {
@@ -315,6 +355,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam){
                         break;
                     }
                 } 
+                trackCaret = true;
                 calcTextMetrics(hwnd);
                 UpdateScrollBars(hwnd);
                 //Update display after any textBuffer or caret position change
@@ -324,7 +365,6 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam){
             } 
         }
         case WM_KEYDOWN:{
-            userScrolling =false;
             switch (wParam){
                 case VK_LEFT:{
                     if(caretCol>0){
@@ -371,6 +411,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam){
                 }
             }
             //Update display after any textBuffer or caret position change
+            trackCaret = true;
             UpdateScrollBars(hwnd);
             InvalidateRect(hwnd, NULL, TRUE); 
             UpdateCaretPosition(hwnd); 
@@ -378,7 +419,6 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam){
         }
         case WM_MOUSEWHEEL:
         {
-            userScrolling = true;
             short zDelta = GET_WHEEL_DELTA_WPARAM(wParam);
             DWORD fwKeys = GET_KEYSTATE_WPARAM(wParam); // Get state of Ctrl, Shift, etc.
 
@@ -395,10 +435,11 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam){
                 scrollOffsetX = std::max(0, std::min(scrollOffsetX, maxPossibleScrollX));
 
                 if (scrollOffsetX != oldScrollOffsetX) {
+                    trackCaret = false;
                     UpdateScrollBars(hwnd);
                     ScrollWindowEx(hwnd, (oldScrollOffsetX - scrollOffsetX), 0,
                                 NULL, NULL, NULL, NULL, SW_INVALIDATE | SW_ERASE);
-                    //UpdateCaretPosition(hwnd);
+                    UpdateCaretPosition(hwnd);
                 }
             } else { // Normal vertical scrolling
                 int linesToScroll = zDelta / WHEEL_DELTA * 3;
@@ -409,17 +450,17 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam){
                 scrollOffsetY =std:: min(scrollOffsetY, std::max(0, (int)textBuffer.size() - linesPerPage));
 
                 if (scrollOffsetY != oldScrollOffsetY) {
+                    trackCaret = false;
                     UpdateScrollBars(hwnd);
                     ScrollWindowEx(hwnd, 0, (oldScrollOffsetY - scrollOffsetY) * charHeight,
                                 NULL, NULL, NULL, NULL, SW_INVALIDATE | SW_ERASE);
-                    //UpdateCaretPosition(hwnd);
+                    UpdateCaretPosition(hwnd);
                 }
             }
             return 0;
         }
         case WM_VSCROLL:
         {
-            userScrolling = true;
             SCROLLINFO si_vert;
             si_vert.cbSize = sizeof(si_vert);
             si_vert.fMask = SIF_ALL;
@@ -436,7 +477,6 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam){
                 case SB_THUMBTRACK: scrollOffsetY = nPos; break;
                 case SB_PAGEUP: scrollOffsetY -= linesPerPage; break;
                 case SB_PAGEDOWN: scrollOffsetY += linesPerPage; break;
-                case SB_ENDSCROLL: userScrolling = false; break;
             }
 
             // Simple clamping
@@ -444,16 +484,16 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam){
 
             if (scrollOffsetY != oldScrollOffsetY) {
                 si_vert.nPos = scrollOffsetY;
+                trackCaret = false;
                 SetScrollInfo(hwnd, SB_VERT, &si_vert, TRUE);
                 ScrollWindowEx(hwnd, 0, (oldScrollOffsetY - scrollOffsetY) * charHeight,
                             NULL, NULL, NULL, NULL, SW_INVALIDATE);
-                //UpdateCaretPosition(hwnd);
+                UpdateCaretPosition(hwnd);
             }
             break;
         }
         case WM_HSCROLL:
         {
-            userScrolling = true;
             SCROLLINFO si_horz;
             si_horz.cbSize = sizeof(si_horz);
             si_horz.fMask = SIF_ALL;
@@ -472,7 +512,6 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam){
                 case SB_THUMBTRACK: scrollOffsetX = nPos; break;
                 case SB_PAGELEFT: scrollOffsetX -= clientRect.right; break;
                 case SB_PAGERIGHT: scrollOffsetX += clientRect.right; break;
-                case SB_ENDSCROLL: userScrolling = false; break;
             }
 
             // Simple clamping
@@ -480,10 +519,11 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam){
 
             if (scrollOffsetX != oldScrollOffsetX) {
                 si_horz.nPos = scrollOffsetX;
+                trackCaret = false;
                 SetScrollInfo(hwnd, SB_HORZ, &si_horz, TRUE);
                 ScrollWindowEx(hwnd, (oldScrollOffsetX - scrollOffsetX), 0,
                             NULL, NULL, NULL, NULL, SW_INVALIDATE);
-                //UpdateCaretPosition(hwnd);
+                UpdateCaretPosition(hwnd);
             }
             break;
         }

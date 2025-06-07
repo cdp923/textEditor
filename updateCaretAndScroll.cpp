@@ -7,41 +7,80 @@
 #include <windows.h>
 #include <algorithm> // For std::max, std::min
 
-void UpdateCaretPosition(HWND hwnd){
+void UpdateCaretPosition(HWND hwnd) {
     HDC hdc = GetDC(hwnd);
     HFONT hOldFont = (HFONT)SelectObject(hdc, font);
-    int x=0;
-    if(caretLine<textBuffer.size()){
+    
+    int x = 0;
+    if (caretLine < textBuffer.size()) {
         SIZE size;
-        // Get the width of the text up to the cursor position to ensure accurate X axis cursor movement
         GetTextExtentPoint32W(hdc, textBuffer[caretLine].c_str(), caretCol, &size);
         x = size.cx;
     }
+    
     RECT clientRect;
     GetClientRect(hwnd, &clientRect);
-    //horizontal auto scroll
-    int padding = 5;
-    if(x<=scrollOffsetX+padding){
-        scrollOffsetX = std::max(0, x - padding);
-    }else if (x > scrollOffsetX + clientRect.right - padding) {
+    if (trackCaret){
+    // Horizontal auto-scroll
+        if (x <= scrollOffsetX + padding) {
+            scrollOffsetX = std::max(0, x - padding);
+        }
+        else if (x > scrollOffsetX + clientRect.right - padding) {
             scrollOffsetX = x - clientRect.right + padding;
         }
-    //Vertical autoscroll
-    int bufferZone = 2;
-    if(caretLine<scrollOffsetY+bufferZone){
-        if((caretLine<=1)){
-            scrollOffsetY =  0;
-        }else{
-            scrollOffsetY = caretLine-2;
+        
+        // Vertical auto-scroll
+        if (caretLine < scrollOffsetY + bufferZone) {
+            if ((caretLine <= 1)) {
+                scrollOffsetY = 0;
+            }
+            else {
+                scrollOffsetY = caretLine - bufferZone;
+            }
         }
-    }else if(caretLine >=scrollOffsetY + linesPerPage){
-        scrollOffsetY = caretLine - linesPerPage+1;
+        else if (caretLine >= scrollOffsetY + linesPerPage) {
+            scrollOffsetY = caretLine - linesPerPage + 1;
+        }
+        x -= scrollOffsetX;
+        int y = (caretLine - scrollOffsetY) * charHeight;
+
+        caretHiddenCount = 0;
+        // Determine if caret should be visible
+        // Set caret position and visibility
+        SetCaretPos(x, y);
+        ShowCaret(hwnd);
+        
+    }else{
+        x = x-scrollOffsetX;
+        int y = (caretLine - scrollOffsetY) * charHeight;
+        bool caretVisible = (y >= 0 && y < clientRect.bottom) && 
+                    (x >= 0 && x< clientRect.right);
+        //hiding is cumulative, so caretHiddenCount prevents it from triggering more than once
+        if (!caretVisible&&caretHiddenCount==0){
+            HideCaret(hwnd);
+            caretHiddenCount ++;
+        }else{
+            SetCaretPos(x, y);
+            ShowCaret(hwnd);
+        }
     }
+    /*
+    // Calculate screen position
+    x -= scrollOffsetX;
+    int y = (caretLine - scrollOffsetY) * charHeight;
+    
+    // Update scroll bars
     UpdateScrollBars(hwnd);
+    
+    // Determine if caret should be visible
+    
+    // Set caret position and visibility
+    SetCaretPos(x, y);
+    */
+    UpdateScrollBars(hwnd);
+    // Force redraw if needed
     InvalidateRect(hwnd, NULL, TRUE);
-    x-=scrollOffsetX;
-    int y = (caretLine - scrollOffsetY)*charHeight;
-    SetCaretPos(x,y);
+    
     SelectObject(hdc, hOldFont);
     ReleaseDC(hwnd, hdc);
 }
@@ -79,7 +118,7 @@ void UpdateScrollBars(HWND hwnd) {
 
     SetScrollInfo(hwnd, SB_HORZ, &si_horz, TRUE);
 }
-/*
+
 void HandleMouseWheelScroll(HWND hwnd, WPARAM wParam){
     short zDelta = GET_WHEEL_DELTA_WPARAM(wParam);
     DWORD fwKeys = GET_KEYSTATE_WPARAM(wParam); // Get state of Ctrl, Shift, etc.
@@ -97,6 +136,7 @@ void HandleMouseWheelScroll(HWND hwnd, WPARAM wParam){
         scrollOffsetX = std::max(0, std::min(scrollOffsetX, maxPossibleScrollX));
 
         if (scrollOffsetX != oldScrollOffsetX) {
+            trackCaret = false; 
             UpdateScrollBars(hwnd);
             ScrollWindowEx(hwnd, (oldScrollOffsetX - scrollOffsetX), 0,
                         NULL, NULL, NULL, NULL, SW_INVALIDATE | SW_ERASE);
@@ -111,6 +151,7 @@ void HandleMouseWheelScroll(HWND hwnd, WPARAM wParam){
         scrollOffsetY =std:: min(scrollOffsetY, std::max(0, (int)textBuffer.size() - linesPerPage));
 
         if (scrollOffsetY != oldScrollOffsetY) {
+            trackCaret = false; 
             UpdateScrollBars(hwnd);
             ScrollWindowEx(hwnd, 0, (oldScrollOffsetY - scrollOffsetY) * charHeight,
                         NULL, NULL, NULL, NULL, SW_INVALIDATE | SW_ERASE);
@@ -152,6 +193,7 @@ void HandleVerticalScroll(HWND hwnd, WPARAM wParam){
 
     if (scrollOffsetY != oldScrollOffsetY) {
         // Update scroll bar position using SetScrollInfo
+        trackCaret = false; 
         SCROLLINFO si_update;
         si_update.cbSize = sizeof(si_update);
         si_update.fMask = SIF_POS;
@@ -200,6 +242,7 @@ void HandleHorizontalScroll(HWND hwnd, WPARAM wParam){
 
     if (scrollOffsetX != oldScrollOffsetX) {
         // Update scroll bar position using SetScrollInfo
+        trackCaret = false; 
         SCROLLINFO si_update;
         si_update.cbSize = sizeof(si_update);
         si_update.fMask = SIF_POS;
@@ -210,4 +253,4 @@ void HandleHorizontalScroll(HWND hwnd, WPARAM wParam){
                     NULL, NULL, NULL, NULL, SW_INVALIDATE | SW_ERASE);
         UpdateCaretPosition(hwnd);
     }
-}*/
+}
