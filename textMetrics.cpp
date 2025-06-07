@@ -15,7 +15,17 @@ void calcTextMetrics(HWND hwnd){
     HDC hdc = GetDC(hwnd);
 
     // Create or get a font. Planning on adding custom fonts
-    font = (HFONT)GetStockObject(DEFAULT_GUI_FONT);
+    if (font == NULL) {
+        // This path indicates an initialization order problem.
+        // As a temporary workaround/fallback, you could create it here,
+        // but it's better to fix the call order.
+        font = CreateFont(
+            -14, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE, DEFAULT_CHARSET,
+            OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY,
+            FF_DONTCARE | FIXED_PITCH, L"Consolas"
+        );
+        // If this block runs, you have an initialization order issue to resolve.
+    }
 
     // Select the font into the device context
     HFONT hOldFont = (HFONT)SelectObject(hdc, font);

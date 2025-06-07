@@ -52,6 +52,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
     if (hwnd == NULL){
         return 0;
     }
+    SetFocus(hwnd);
     ShowWindow(hwnd, nCmdShow);
     
     //Run MSG loop

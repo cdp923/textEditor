@@ -42,6 +42,8 @@ void LoadTextFromFile(HWND hwnd, const std::wstring& filePath) {
     calcTextMetrics(hwnd);
     UpdateScrollBars(hwnd);
     UpdateCaretPosition(hwnd);
+    CreateCaret(hwnd, NULL, 2, charHeight);
+    ShowCaret(hwnd);
     InvalidateRect(hwnd, NULL, TRUE);
 
     SetWindowTextW(hwnd, currentFilePath.c_str());
@@ -124,15 +126,17 @@ void NewDocument(HWND hwnd) {
     currentFilePath.clear();
     documentModified = false; 
 
-    caretLine = 0;   
-    caretCol = 0;
+    caretLine = 5;   
+    caretCol = 5;
     scrollOffsetY = 0;
     scrollOffsetX = 0;
 
-    
+    trackCaret = true;
     calcTextMetrics(hwnd);
     UpdateScrollBars(hwnd);
     UpdateCaretPosition(hwnd);
+    CreateCaret(hwnd, NULL, 2, charHeight);
+    ShowCaret(hwnd);
     InvalidateRect(hwnd, NULL, TRUE);
 
     SetWindowTextW(hwnd, L"Text Editor");
@@ -157,6 +161,7 @@ void OpenFile(HWND hwnd) {
 
     if (GetOpenFileNameW(&ofn)) { 
         LoadTextFromFile(hwnd, ofn.lpstrFile); 
+        ShowCaret(hwnd);
     }
 }
 void SaveFile(HWND hwnd) {

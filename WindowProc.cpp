@@ -15,6 +15,11 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam){
         case WM_CREATE:
         {
             textBuffer.push_back(L"");
+            font = CreateFont(
+                -14, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE, DEFAULT_CHARSET,
+                OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY,
+                FF_DONTCARE | FIXED_PITCH, L"Consolas" 
+            );
             calcTextMetrics(hwnd);
             UpdateScrollBars(hwnd);
             CreateCaret(hwnd, NULL, 2, charHeight);
@@ -55,7 +60,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam){
         case WM_SETFOCUS:
         {
             UpdateCaretPosition(hwnd); // Ensure caret is at correct position in case window was resized
-            //ShowCaret(hwnd); // Make the caret visible when the window gains focus
+            ShowCaret(hwnd); // Make the caret visible when the window gains focus
             break;
         }
         case WM_KILLFOCUS:
@@ -78,6 +83,10 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam){
         }
         case WM_DESTROY:
         {
+            if (font != NULL) {
+                DeleteObject(font);
+                font = NULL; // Set to NULL after deleting
+            }
             DestroyCaret();
             PostQuitMessage(0);
             return 0;
@@ -223,7 +232,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam){
         }
         case WM_COMMAND:
         {
-            // LOWORD(wParam) extracts the menu item ID
+            trackCaret = true;
             switch (LOWORD(wParam)) {
                 case ID_FILE_NEW:
                     NewDocument(hwnd);

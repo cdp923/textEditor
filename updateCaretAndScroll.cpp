@@ -20,6 +20,7 @@ void UpdateCaretPosition(HWND hwnd) {
     
     RECT clientRect;
     GetClientRect(hwnd, &clientRect);
+    trackCaret = true;
     if (trackCaret){
     // Horizontal auto-scroll
         if (x <= scrollOffsetX + padding) {
