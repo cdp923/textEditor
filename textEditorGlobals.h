@@ -16,3 +16,8 @@ extern bool trackCaret;
 extern int caretHiddenCount;
 extern int padding;
 extern int bufferZone;
+
+extern std::wstring currentFilePath;
+extern bool documentModified;
+
+#include "resource.h"

@@ -17,7 +17,8 @@ Terminal commands
 cd ..
 cd ..
 cd projects/textEditor
-g++ wWinMain.cpp WindowProc.cpp textEditorGlobals.cpp textMetrics.cpp updateCaretAndScroll.cpp -o textEditor.exe -mwindows -municode
+windres textEditor.rc -O coff -o textEditor.res
+g++ wWinMain.cpp WindowProc.cpp textEditorGlobals.cpp textMetrics.cpp updateCaretAndScroll.cpp fileOperations.cpp textEditor.res -o textEditor.exe -mwindows -municode -lcomdlg32
 textEditor.exe
 */
 
@@ -43,7 +44,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
         CW_USEDEFAULT,CW_USEDEFAULT, CW_USEDEFAULT,CW_USEDEFAULT, 
 
         NULL,       //Parent Window
-        NULL,       //Menu
+        LoadMenu(hInstance, MAKEINTRESOURCE(IDR_MAINMENU)),       //Menu
         hInstance,  //Instance handle
         NULL        //Aditional app data
     );

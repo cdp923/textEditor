@@ -5,6 +5,7 @@
 #include "textEditorGlobals.h"         // For textBuffer, caretLine, caretCol
 #include "textMetrics.h"            // For calcTextMetrics, charHeight, font
 #include "updateCaretAndScroll.h"   // For UpdateCaretPosition, UpdateScrollBars, and scroll handlers
+#include "fileOperations.h"         //for open, save, saveAs
 
 #include <algorithm> 
 
@@ -61,6 +62,19 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam){
         {
             HideCaret(hwnd); // Hide the caret when the window loses focus
             break;
+        }
+        case WM_CLOSE: 
+        {
+            if(documentModified){
+                int result = PromptForSave(hwnd); 
+                if (result == IDCANCEL) {
+                    //Dont close
+                    return 0; 
+                }
+            }
+            
+            DestroyWindow(hwnd); 
+            return 0; 
         }
         case WM_DESTROY:
         {
@@ -127,6 +141,8 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam){
                     }
                 }
                 trackCaret = true; 
+                documentModified = true;
+                SetWindowTextW(hwnd, (currentFilePath + (documentModified ? L" (Modified)" : L"")).c_str());
                 calcTextMetrics(hwnd);
                 UpdateScrollBars(hwnd);
                 //Update display after any textBuffer or caret position change
@@ -168,6 +184,8 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam){
                     }else if (caretLine >= textBuffer.size()) {
                         textBuffer.resize(caretLine + 1);
                         caretLine++;
+                        documentModified = true;
+                        SetWindowTextW(hwnd, (currentFilePath + (documentModified ? L" (Modified)" : L"")).c_str());
                     }
                     break;
                 }
@@ -202,6 +220,30 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam){
         {
             HandleHorizontalScroll(hwnd, wParam);
             return 0;
+        }
+        case WM_COMMAND:
+        {
+            // LOWORD(wParam) extracts the menu item ID
+            switch (LOWORD(wParam)) {
+                case ID_FILE_NEW:
+                    NewDocument(hwnd);
+                    break;
+                case ID_FILE_OPEN:
+                    OpenFile(hwnd);
+                    break;
+                case ID_FILE_SAVE:
+                    SaveFile(hwnd);
+                    break;
+                case ID_FILE_SAVEAS:
+                    SaveFileAs(hwnd);
+                    break;
+                case ID_APP_EXIT: 
+                    SendMessage(hwnd, WM_CLOSE, 0, 0);
+                    break;
+            }
+            // Important: don't return 0 too early if other command handlers
+            // (e.g., from controls) are needed, but for menus, it's fine.
+            return 0; 
         }
 
         
