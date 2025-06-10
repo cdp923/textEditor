@@ -2,6 +2,7 @@
 
 
 std::vector<std::wstring> textBuffer; 
+
 int caretLine = 0;
 int caretCol = 0;
 int scrollOffsetY = 0; // Vertical scroll offset (in lines)

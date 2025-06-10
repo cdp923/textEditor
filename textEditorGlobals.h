@@ -3,8 +3,10 @@
 #include <vector>
 #include <string>
 
-// Global text buffer
+
+// Global text buffer and stack
 extern std::vector<std::wstring> textBuffer;
+
 
 // Caret and scroll variables
 extern int caretLine;

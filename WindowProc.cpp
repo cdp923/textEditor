@@ -2,10 +2,11 @@
 #include "WindowProc.h"
 
 
-#include "textEditorGlobals.h"         // For textBuffer, caretLine, caretCol
+#include "textEditorGlobals.h"      // For textBuffer, caretLine, caretCol
 #include "textMetrics.h"            // For calcTextMetrics, charHeight, font
 #include "updateCaretAndScroll.h"   // For UpdateCaretPosition, UpdateScrollBars, and scroll handlers
-#include "fileOperations.h"         //for open, save, saveAs
+#include "fileOperations.h"         // For open, save, saveAs
+#include "undoStack.h"              // For stack operations
 
 #include <algorithm> 
 
@@ -59,12 +60,14 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam){
         }
         case WM_SETFOCUS:
         {
+            FinalizeTypingAction(hwnd);
             UpdateCaretPosition(hwnd); // Ensure caret is at correct position in case window was resized
             ShowCaret(hwnd); // Make the caret visible when the window gains focus
             break;
         }
         case WM_KILLFOCUS:
         {
+            FinalizeTypingAction(hwnd);
             HideCaret(hwnd); // Hide the caret when the window loses focus
             break;
         }
@@ -102,17 +105,25 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam){
                 }
                 switch(ch) {
                     case L'\t': {
-                        textBuffer[caretLine].insert(caretCol, L"    "); // Insert 4 spaces
+                        FinalizeTypingAction(hwnd);
+                        RecordAction(UndoActionType::INSERT_TEXT, caretLine, caretCol, L"    ");
+                        InsertTextAt(caretLine, caretCol, L"    "); // Insert 4 spaces
                         caretCol += 4;
                         break;
                     }
                     case L'\b': { // Backspace
                         if (caretCol > 0) {
-                            textBuffer[caretLine].erase(caretCol - 1, 1); // Erase character to the left
+                            FinalizeTypingAction(hwnd);
+                            wchar_t deletedChar = textBuffer[caretLine][caretCol - 1];
+                            RecordAction(UndoActionType::DELETE_TEXT, caretLine, caretCol - 1, std::wstring(1, deletedChar));
+                            DeleteTextAt(caretLine, caretCol - 1, 1); // Erase character to the left
                             caretCol--;
                         } else if (caretLine > 0) {
+                            FinalizeTypingAction(hwnd);
                             // Backspace at beginning of line: merge with previous line
+                            int prevLineLength = textBuffer[caretLine - 1].length();
                             std::wstring currentLineContent = textBuffer[caretLine];
+                            RecordAction(UndoActionType::LINE_JOIN, caretLine - 1, prevLineLength, currentLineContent);
                             textBuffer.erase(textBuffer.begin() + caretLine); // Remove current line
                             caretLine--; // Move caret to previous line
                             caretCol = textBuffer[caretLine].length(); // Move caret to end of previous line
@@ -126,14 +137,17 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam){
                     }
                     case L'\r': { // Enter key
                         // If caret is in the middle of a line, split it
+                        FinalizeTypingAction(hwnd);
+                        std::wstring remainingText;
                         if (caretCol < textBuffer[caretLine].length()) {
-                            std::wstring remainingText = textBuffer[caretLine].substr(caretCol);
+                            remainingText = textBuffer[caretLine].substr(caretCol);
                             textBuffer[caretLine].resize(caretCol); 
                             textBuffer.insert(textBuffer.begin() + caretLine + 1, remainingText); 
                         } else {
                             // If caret is at the end of a line, just add an empty new line
                             textBuffer.insert(textBuffer.begin() + caretLine + 1, L"");
                         }
+                        RecordAction(UndoActionType::LINE_SPLIT, caretLine, caretCol, remainingText);
                         caretLine++; 
                         caretCol = 0; 
 
@@ -143,15 +157,36 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam){
                         }
                         break;
                     }
+                    case 32||160:{
+                        FinalizeTypingAction(hwnd);
+                        RecordAction(UndoActionType::INSERT_TEXT, caretLine, caretCol, L" ");
+                        InsertTextAt(caretLine, caretCol, std::wstring(1, ch));
+                        caretCol++;
+                    }
                     default: { // All other printable characters
-                        textBuffer[caretLine].insert(caretCol, 1, ch); 
-                        caretCol++; 
+                        // Determine if we need a new action
+                        bool needsNewAction = 
+                            (g_currentTypingAction == nullptr) ||
+                            (caretLine != g_currentTypingAction->line) ||
+                            (caretCol != g_currentTypingAction->col + g_currentTypingAction->text.length());
+
+                        if (needsNewAction) {
+                            FinalizeTypingAction(hwnd);
+                            g_currentTypingAction = new UndoAction(UndoActionType::INSERT_TEXT, 
+                                                                caretLine, caretCol, 
+                                                                std::wstring(1, ch));
+                        } else {
+                            g_currentTypingAction->text += ch;
+                        }
+
+                        InsertTextAt(caretLine, caretCol, std::wstring(1, ch));
+                        caretCol++;
                         break;
                     }
                 }
                 trackCaret = true; 
                 documentModified = true;
-                SetWindowTextW(hwnd, (currentFilePath + (documentModified ? L" (Modified)" : L"")).c_str());
+                SetWindowTextW(hwnd, (currentFilePath + (L" (Modified)")).c_str());
                 calcTextMetrics(hwnd);
                 UpdateScrollBars(hwnd);
                 //Update display after any textBuffer or caret position change
@@ -161,6 +196,12 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam){
             } 
         }
         case WM_KEYDOWN:{
+            if (wParam != VK_SHIFT && wParam != VK_CONTROL && wParam != VK_MENU) {
+                FinalizeTypingAction(hwnd);
+            }
+            if (wParam=='Z'&& GetAsyncKeyState(VK_CONTROL) & 0x8000){//Z has to be capital to work, 0x8000 means control key currently held down
+                PerformUndo(hwnd);
+            }
             switch (wParam){
                 case VK_LEFT:{
                     trackCaret = true; 
@@ -215,18 +256,109 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam){
             UpdateCaretPosition(hwnd); 
             break;
         }
+        case WM_LBUTTONDOWN:
+        {
+            
+            FinalizeTypingAction(hwnd);
+
+            int mouseX = LOWORD(lParam);
+            int mouseY = HIWORD(lParam);
+
+            
+            int tempCaretLine = (mouseY / charHeight) + scrollOffsetY;
+
+           
+            if (tempCaretLine < 0) {
+                tempCaretLine = 0;
+            }
+            // If clicking below the last line of text, place caret at the end of the last line
+            if (tempCaretLine >= textBuffer.size()) {
+                caretLine = textBuffer.size() - 1; 
+                if (caretLine < 0) caretLine = 0; 
+                caretCol = textBuffer[caretLine].length(); 
+                
+                
+                trackCaret = true; 
+                InvalidateRect(hwnd, NULL, TRUE);
+                UpdateCaretPosition(hwnd);
+                SetFocus(hwnd);
+                return 0; 
+            }
+
+            // Now tempCaretLine is guaranteed to be a valid index within textBuffer
+            caretLine = tempCaretLine;
+
+           
+            HDC hdc = GetDC(hwnd);
+            HFONT hOldFont = (HFONT)SelectObject(hdc, font); 
+
+            const std::wstring& lineContent = textBuffer[caretLine];
+            int effectiveMouseX = mouseX + scrollOffsetX;
+            int tempCaretCol = 0;
+
+            if (!lineContent.empty()) {
+                
+                int low = 0;
+                int high = lineContent.length();
+                int mid;
+
+                while (low <= high) {
+                    mid = low + (high - low) / 2;
+                    SIZE size;
+                    GetTextExtentPoint32W(hdc, lineContent.c_str(), mid, &size);
+
+                    if (size.cx <= effectiveMouseX) {
+                        tempCaretCol = mid; // This many characters fit to the left of click
+                        low = mid + 1;
+                    } else {
+                        high = mid - 1;
+                    }
+                }
+
+                // Adjust for midpoint: If click is past the midpoint of the character at tempCaretCol,
+                // move to the beginning of the next character.
+                if (tempCaretCol < lineContent.length()) { 
+                    SIZE charWidthSize;
+                    GetTextExtentPoint32W(hdc, lineContent.c_str() + tempCaretCol, 1, &charWidthSize);
+                    
+                    SIZE currentTextWidth; 
+                    GetTextExtentPoint32W(hdc, lineContent.c_str(), tempCaretCol, &currentTextWidth);
+
+                    if (effectiveMouseX > (currentTextWidth.cx + charWidthSize.cx / 2)) {
+                        tempCaretCol++;
+                    }
+                }
+            } 
+            if (tempCaretCol > lineContent.length()) {
+                tempCaretCol = lineContent.length();
+            }
+            caretCol = tempCaretCol;
+
+            SelectObject(hdc, hOldFont);
+            ReleaseDC(hwnd, hdc);
+
+            
+            trackCaret = true; 
+            InvalidateRect(hwnd, NULL, TRUE);
+            UpdateCaretPosition(hwnd);
+            SetFocus(hwnd); 
+            break;
+        }
         case WM_MOUSEWHEEL:
         {
+            FinalizeTypingAction(hwnd);
             HandleMouseWheelScroll(hwnd, wParam);
             return 0;
         }
         case WM_VSCROLL:
         {
+            FinalizeTypingAction(hwnd);
             HandleVerticalScroll(hwnd, wParam);
             return 0;
         }
         case WM_HSCROLL:
         {
+            FinalizeTypingAction(hwnd);
             HandleHorizontalScroll(hwnd, wParam);
             return 0;
         }
