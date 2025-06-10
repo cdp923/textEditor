@@ -157,7 +157,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam){
                         }
                         break;
                     }
-                    case 32||160:{
+                    case L' ':{
                         FinalizeTypingAction(hwnd);
                         RecordAction(UndoActionType::INSERT_TEXT, caretLine, caretCol, L" ");
                         InsertTextAt(caretLine, caretCol, std::wstring(1, ch));

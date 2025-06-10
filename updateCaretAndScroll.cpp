@@ -20,7 +20,6 @@ void UpdateCaretPosition(HWND hwnd) {
     
     RECT clientRect;
     GetClientRect(hwnd, &clientRect);
-    trackCaret = true;
     if (trackCaret){
     // Horizontal auto-scroll
         if (x <= scrollOffsetX + padding) {
@@ -109,7 +108,7 @@ void UpdateScrollBars(HWND hwnd) {
     si_horz.nMin   = 0;
     
     LONG clientWidth = clientRect.right;
-    si_horz.nMax   = std::max(0L, (LONG)maxLineWidthPixels - 1);
+    si_horz.nMax   = std::max(0L, (LONG)maxLineWidthPixels + padding);
     
     si_horz.nPage  = clientWidth; // Page size is the client width
     
