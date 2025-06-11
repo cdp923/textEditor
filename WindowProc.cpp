@@ -120,7 +120,12 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam){
                             (g_currentDeletionAction == nullptr) ||
                             (caretLine != g_currentDeletionAction->line) ||
                             (caretCol != g_currentDeletionAction->col + g_currentDeletionAction->text.length());
-
+                        if(deletedChar ==L' '){
+                            FinalizeDeletionAction(hwnd);
+                            g_currentDeletionAction = new UndoAction(UndoActionType::DELETE_TEXT, 
+                                    caretLine, caretCol-1, 
+                                    std::wstring(1, deletedChar));
+                        }
                         if (needsNewDelAction) {
                             FinalizeDeletionAction(hwnd);
                             g_currentDeletionAction = new UndoAction(UndoActionType::DELETE_TEXT, 
@@ -134,7 +139,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam){
                             DeleteTextAt(caretLine, caretCol - 1, 1); // Erase character to the left
                             caretCol--;
                         } else if (caretLine > 0) {
-                            FinalizeTypingAction(hwnd);
+                            FinalizeAction(hwnd);
                             // Backspace at beginning of line: merge with previous line
                             int prevLineLength = textBuffer[caretLine - 1].length();
                             std::wstring currentLineContent = textBuffer[caretLine];
