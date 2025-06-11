@@ -2,6 +2,7 @@
 #include "TextEditorGlobals.h" // For access to global variables and other utilities
 #include "textMetrics.h"       // For calcTextMetrics
 #include "updateCaretAndScroll.h" // For UpdateScrollBars, UpdateCaretPosition
+#include "isModified.h" //For setting modified tag
 
 #include <fstream>   // For std::wifstream, std::wofstream
 #include <commdlg.h> // For GetOpenFileNameW, GetSaveFileNameW
@@ -42,6 +43,7 @@ void LoadTextFromFile(HWND hwnd, const std::wstring& filePath) {
     calcTextMetrics(hwnd);
     UpdateScrollBars(hwnd);
     UpdateCaretPosition(hwnd);
+    //Caret won't appear
     CreateCaret(hwnd, NULL, 2, charHeight);
     ShowCaret(hwnd);
     InvalidateRect(hwnd, NULL, TRUE);
@@ -124,8 +126,6 @@ void NewDocument(HWND hwnd) {
     textBuffer.clear(); 
     textBuffer.push_back(L""); 
     currentFilePath.clear();
-    documentModified = false; 
-
     caretLine = 5;   
     caretCol = 5;
     scrollOffsetY = 0;
@@ -135,11 +135,11 @@ void NewDocument(HWND hwnd) {
     calcTextMetrics(hwnd);
     UpdateScrollBars(hwnd);
     UpdateCaretPosition(hwnd);
+    //Caret won't appear
     CreateCaret(hwnd, NULL, 2, charHeight);
     ShowCaret(hwnd);
     InvalidateRect(hwnd, NULL, TRUE);
-
-    SetWindowTextW(hwnd, L"Text Editor");
+    setOriginal(textBuffer, hwnd);
 }
 void OpenFile(HWND hwnd) {
     int result = PromptForSave(hwnd); 
@@ -170,6 +170,10 @@ void SaveFile(HWND hwnd) {
     } else { 
         SaveTextToFile(hwnd, currentFilePath); 
     }
+    setOriginal(textBuffer, hwnd);
+    //Caret won't appear
+    CreateCaret(hwnd, NULL, 2, charHeight);
+    UpdateCaretPosition(hwnd);
 }
 void SaveFileAs(HWND hwnd) {
     OPENFILENAMEW ofn; // Structure for save file dialog
@@ -197,4 +201,8 @@ void SaveFileAs(HWND hwnd) {
     if (GetSaveFileNameW(&ofn)) { 
         SaveTextToFile(hwnd, ofn.lpstrFile); 
     }
+    setOriginal(textBuffer, hwnd);
+    //Caret won't appear
+    CreateCaret(hwnd, NULL, 2, charHeight);
+    UpdateCaretPosition(hwnd);
 }

@@ -1,11 +1,5 @@
 #pragma once
 
-#include "characterCase.h"
-#include "textEditorGlobals.h"
-#include "updateCaretAndScroll.h"
-#include "undoStack.h"
-#include "textMetrics.h"
-
 #include <windows.h>
 
 

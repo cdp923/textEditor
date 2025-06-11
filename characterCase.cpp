@@ -1,5 +1,12 @@
 #include "characterCase.h"
 
+#include "characterCase.h"
+#include "textEditorGlobals.h"
+#include "updateCaretAndScroll.h"
+#include "undoStack.h"
+#include "textMetrics.h"
+#include "isModified.h"
+
 void characterCase(wchar_t ch, HWND hwnd){
     // Ensure we are within valid line bounds AND process valid input characters
     if (ch >= 32 || ch == L'\t' || ch == L'\r' || ch == L'\b') {
@@ -19,6 +26,7 @@ void characterCase(wchar_t ch, HWND hwnd){
                 returnCase(ch, hwnd);
                 break;
             }
+            //Was having trouble with undoing single words over a space
             case L' ':{
                 spaceCase(ch, hwnd);
                 break;
@@ -64,11 +72,12 @@ void backspaceCase(wchar_t ch, HWND hwnd){
     if (caretCol > 0) {
         FinalizeTypingAction(hwnd);
         wchar_t deletedChar = textBuffer[caretLine][caretCol - 1];
-        //undo logic start
+        //Undo logic start
         bool needsNewDelAction = 
         (g_currentDeletionAction == nullptr) ||
         (caretLine != g_currentDeletionAction->line) ||
         (caretCol != g_currentDeletionAction->col + g_currentDeletionAction->text.length());
+    //Was having trouble with undoing single words over a space
     if(deletedChar ==L' '){
         FinalizeDeletionAction(hwnd);
         g_currentDeletionAction = new UndoAction(UndoActionType::DELETE_TEXT, 
@@ -83,7 +92,7 @@ void backspaceCase(wchar_t ch, HWND hwnd){
     } else {
         g_currentDeletionAction->text += deletedChar;
     }
-    //undo logic end
+    //Undo logic end
     //RecordAction(UndoActionType::DELETE_TEXT, caretLine, caretCol - 1, std::wstring(1, deletedChar));
     DeleteTextAt(caretLine, caretCol - 1, 1); // Erase character to the left
     caretCol--;

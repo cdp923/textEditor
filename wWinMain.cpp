@@ -18,7 +18,7 @@ cd ..
 cd ..
 cd projects/textEditor
 windres textEditor.rc -O coff -o textEditor.res
-g++ wWinMain.cpp WindowProc.cpp textEditorGlobals.cpp textMetrics.cpp updateCaretAndScroll.cpp fileOperations.cpp undoStack.cpp characterCase.cpp textEditor.res -o textEditor.exe -mwindows -municode -lcomdlg32
+g++ wWinMain.cpp WindowProc.cpp textEditorGlobals.cpp textMetrics.cpp updateCaretAndScroll.cpp fileOperations.cpp undoStack.cpp characterCase.cpp isModified.cpp textEditor.res -o textEditor.exe -mwindows -municode -lcomdlg32
 textEditor.exe
 */
 

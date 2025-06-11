@@ -1,0 +1,35 @@
+To-Do:
+
+-Uncomment WM_CLOSE 
+Controls
+    -Copy (After highlight)
+    -Paste
+    -Page up
+    -Page down
+    -Shift + tab (After highlight)
+    -Highlighted shift
+Navigation:
+    -Left padding
+        -Initial placement
+        -Cursor tracking
+            -Left
+            -Right
+    -Track caret when on Left
+    -Caret tracks tabs when moving vertical (Maybe)
+    -Bullet Logic
+Cursor:
+    -Highlight
+    -Right click
+    -Hold scroll wheel
+    -Shift + Scroll to change font size
+Customization:
+    -Bullet points
+    -Font
+    -Tab size
+    -Background and text color
+    -Bullet point
+    -AutoComplete
+    -AutoCorrect
+Logic:
+    -Modified tag
+    -Correct deleted line undo

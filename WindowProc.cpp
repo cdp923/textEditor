@@ -1,12 +1,14 @@
 #define NOMINMAX
 #include "WindowProc.h"
 
-#include "characterCase.h"
+
 #include "textEditorGlobals.h"      // For textBuffer, caretLine, caretCol
 #include "textMetrics.h"            // For calcTextMetrics, charHeight, font
 #include "updateCaretAndScroll.h"   // For UpdateCaretPosition, UpdateScrollBars, and scroll handlers
 #include "fileOperations.h"         // For open, save, saveAs
 #include "undoStack.h"              // For stack operations
+#include "characterCase.h"          //For characterCase
+#include "isModified.h"
 
 #include <algorithm> 
 
@@ -16,6 +18,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam){
         case WM_CREATE:
         {
             textBuffer.push_back(L"");
+            setOriginal(textBuffer, hwnd);
             font = CreateFont(
                 -14, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE, DEFAULT_CHARSET,
                 OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY,
@@ -99,7 +102,6 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam){
             wchar_t ch = (wchar_t)wParam;
             characterCase(ch, hwnd);
             break;
-            
         }
         case WM_KEYDOWN:{
             if (wParam != VK_SHIFT && wParam != VK_CONTROL && wParam != VK_MENU) {

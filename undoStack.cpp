@@ -5,6 +5,7 @@
 
 std::stack<UndoAction> undoStack;
 
+//Undoing single words was giving me difficulty
 UndoAction* g_currentTypingAction = nullptr;
 UndoAction* g_currentDeletionAction = nullptr;
 
