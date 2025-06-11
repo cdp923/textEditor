@@ -6,5 +6,5 @@
 
 extern std::vector<std::wstring> savedTextBuffer;
 
-void isModified(std::vector<std::wstring> originalTextBuffer, HWND hwnd);
+void isModifiedTag(std::vector<std::wstring> originalTextBuffer, HWND hwnd);
 void setOriginal(std::vector<std::wstring> originalTextBuffer, HWND hwnd);

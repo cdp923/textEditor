@@ -1,6 +1,7 @@
 #define NOMINMAX
 
 #include "undoStack.h"
+#include "isModified.h"
 
 
 std::stack<UndoAction> undoStack;
@@ -142,6 +143,7 @@ void PerformUndo(HWND hwnd) {
     }
 
     UpdateCaretPosition(hwnd);
+    isModifiedTag(textBuffer, hwnd);
     UpdateScrollBars(hwnd);
     InvalidateRect(hwnd, NULL, TRUE);
 }

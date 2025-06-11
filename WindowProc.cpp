@@ -142,8 +142,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam){
                     }else if (caretLine >= textBuffer.size()) {
                         textBuffer.resize(caretLine + 1);
                         caretLine++;
-                        documentModified = true;
-                        SetWindowTextW(hwnd, (currentFilePath + (documentModified ? L" (Modified)" : L"")).c_str());
+                        isModifiedTag(textBuffer, hwnd);
                     }
                     break;
                 }

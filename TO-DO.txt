@@ -1,6 +1,7 @@
 To-Do:
 
--Uncomment WM_CLOSE 
+-Uncomment WM_CLOSE
+-few textBuffer in New Document 
 Controls
     -Copy (After highlight)
     -Paste

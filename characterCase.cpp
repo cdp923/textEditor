@@ -37,8 +37,7 @@ void characterCase(wchar_t ch, HWND hwnd){
             }
         }
         trackCaret = true; 
-        documentModified = true;
-        SetWindowTextW(hwnd, (currentFilePath + (L" (Modified)")).c_str());
+        isModifiedTag(textBuffer, hwnd);
         calcTextMetrics(hwnd);
         UpdateScrollBars(hwnd);
         //Update display after any textBuffer or caret position change
