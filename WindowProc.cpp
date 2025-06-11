@@ -60,14 +60,14 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam){
         }
         case WM_SETFOCUS:
         {
-            FinalizeTypingAction(hwnd);
+            FinalizeAction(hwnd);
             UpdateCaretPosition(hwnd); // Ensure caret is at correct position in case window was resized
             ShowCaret(hwnd); // Make the caret visible when the window gains focus
             break;
         }
         case WM_KILLFOCUS:
         {
-            FinalizeTypingAction(hwnd);
+            FinalizeAction(hwnd);
             HideCaret(hwnd); // Hide the caret when the window loses focus
             break;
         }
@@ -105,7 +105,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam){
                 }
                 switch(ch) {
                     case L'\t': {
-                        FinalizeTypingAction(hwnd);
+                        FinalizeAction(hwnd);
                         RecordAction(UndoActionType::INSERT_TEXT, caretLine, caretCol, L"    ");
                         InsertTextAt(caretLine, caretCol, L"    "); // Insert 4 spaces
                         caretCol += 4;
@@ -115,7 +115,22 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam){
                         if (caretCol > 0) {
                             FinalizeTypingAction(hwnd);
                             wchar_t deletedChar = textBuffer[caretLine][caretCol - 1];
-                            RecordAction(UndoActionType::DELETE_TEXT, caretLine, caretCol - 1, std::wstring(1, deletedChar));
+
+                            bool needsNewDelAction = 
+                            (g_currentDeletionAction == nullptr) ||
+                            (caretLine != g_currentDeletionAction->line) ||
+                            (caretCol != g_currentDeletionAction->col + g_currentDeletionAction->text.length());
+
+                        if (needsNewDelAction) {
+                            FinalizeDeletionAction(hwnd);
+                            g_currentDeletionAction = new UndoAction(UndoActionType::DELETE_TEXT, 
+                                                                caretLine, caretCol-1, 
+                                                                std::wstring(1, deletedChar));
+                        } else {
+                            g_currentDeletionAction->text += deletedChar;
+                        }
+
+                            //RecordAction(UndoActionType::DELETE_TEXT, caretLine, caretCol - 1, std::wstring(1, deletedChar));
                             DeleteTextAt(caretLine, caretCol - 1, 1); // Erase character to the left
                             caretCol--;
                         } else if (caretLine > 0) {
@@ -137,7 +152,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam){
                     }
                     case L'\r': { // Enter key
                         // If caret is in the middle of a line, split it
-                        FinalizeTypingAction(hwnd);
+                        FinalizeAction(hwnd);
                         std::wstring remainingText;
                         if (caretCol < textBuffer[caretLine].length()) {
                             remainingText = textBuffer[caretLine].substr(caretCol);
@@ -158,10 +173,11 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam){
                         break;
                     }
                     case L' ':{
-                        FinalizeTypingAction(hwnd);
+                        FinalizeAction(hwnd);
                         RecordAction(UndoActionType::INSERT_TEXT, caretLine, caretCol, L" ");
                         InsertTextAt(caretLine, caretCol, std::wstring(1, ch));
                         caretCol++;
+                        break;
                     }
                     default: { // All other printable characters
                         // Determine if we need a new action
@@ -178,7 +194,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam){
                         } else {
                             g_currentTypingAction->text += ch;
                         }
-
+                        
                         InsertTextAt(caretLine, caretCol, std::wstring(1, ch));
                         caretCol++;
                         break;
@@ -197,7 +213,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam){
         }
         case WM_KEYDOWN:{
             if (wParam != VK_SHIFT && wParam != VK_CONTROL && wParam != VK_MENU) {
-                FinalizeTypingAction(hwnd);
+                FinalizeAction(hwnd);
             }
             if (wParam=='Z'&& GetAsyncKeyState(VK_CONTROL) & 0x8000){//Z has to be capital to work, 0x8000 means control key currently held down
                 PerformUndo(hwnd);
@@ -259,7 +275,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam){
         case WM_LBUTTONDOWN:
         {
             
-            FinalizeTypingAction(hwnd);
+            FinalizeAction(hwnd);
 
             int mouseX = LOWORD(lParam);
             int mouseY = HIWORD(lParam);
@@ -346,25 +362,26 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam){
         }
         case WM_MOUSEWHEEL:
         {
-            FinalizeTypingAction(hwnd);
+            FinalizeAction(hwnd);
             HandleMouseWheelScroll(hwnd, wParam);
             return 0;
         }
         case WM_VSCROLL:
         {
-            FinalizeTypingAction(hwnd);
+            FinalizeAction(hwnd);
             HandleVerticalScroll(hwnd, wParam);
             return 0;
         }
         case WM_HSCROLL:
         {
-            FinalizeTypingAction(hwnd);
+            FinalizeAction(hwnd);
             HandleHorizontalScroll(hwnd, wParam);
             return 0;
         }
         case WM_COMMAND:
         {
             trackCaret = true;
+            FinalizeAction(hwnd);
             switch (LOWORD(wParam)) {
                 case ID_FILE_NEW:
                     NewDocument(hwnd);

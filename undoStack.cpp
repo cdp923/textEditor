@@ -6,6 +6,7 @@
 std::stack<UndoAction> undoStack;
 
 UndoAction* g_currentTypingAction = nullptr;
+UndoAction* g_currentDeletionAction = nullptr;
 
 
 
@@ -67,7 +68,34 @@ void FinalizeTypingAction(HWND hwnd) {
         g_currentTypingAction = nullptr;
     }
 }
-
+void FinalizeDeletionAction(HWND hwnd) {
+    if (g_currentDeletionAction != nullptr) {
+        if (!g_currentDeletionAction->text.empty()) {
+            // Check if we can merge with previous undo action
+            if (!undoStack.empty()) {
+                UndoAction& prevAction = undoStack.top();
+                if (prevAction.type == UndoActionType::DELETE_TEXT &&
+                    prevAction.line == g_currentDeletionAction->line &&
+                    prevAction.col == (g_currentDeletionAction->col + g_currentDeletionAction->text.length())) {
+                    // Merge with previous deletion
+                    prevAction.text = g_currentDeletionAction->text + prevAction.text;
+                    prevAction.col = g_currentDeletionAction->col;
+                    delete g_currentDeletionAction;
+                    g_currentDeletionAction = nullptr;
+                    return;
+                }
+            }
+            
+            undoStack.push(*g_currentDeletionAction);
+        }
+        delete g_currentDeletionAction;
+        g_currentDeletionAction = nullptr;
+    }
+}
+void FinalizeAction(HWND hwnd){
+    FinalizeDeletionAction(hwnd);
+    FinalizeTypingAction(hwnd);
+}
 
 void RecordAction(UndoActionType type, int line, int col, const std::wstring& text) {
     undoStack.push(UndoAction(type, line, col, text));
@@ -75,7 +103,7 @@ void RecordAction(UndoActionType type, int line, int col, const std::wstring& te
 
 
 void PerformUndo(HWND hwnd) {
-    FinalizeTypingAction(hwnd);
+    FinalizeAction(hwnd);
 
     if (undoStack.empty()) {
         return;

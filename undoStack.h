@@ -29,10 +29,13 @@ struct UndoAction {
 
 extern std::stack<UndoAction> undoStack;
 extern UndoAction* g_currentTypingAction;
+extern UndoAction* g_currentDeletionAction;
 
 void RecordAction(UndoActionType type, int line, int col, const std::wstring& text = L"");
 void PerformUndo(HWND hwnd);
 void FinalizeTypingAction(HWND hwnd);
+void FinalizeDeletionAction(HWND hwnd);
+void FinalizeAction(HWND hwnd);
 
 void InsertTextAt(int line, int col, const std::wstring& text);
 void DeleteTextAt(int line, int col, size_t length);
