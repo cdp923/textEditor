@@ -39,7 +39,7 @@ void SplitLine(int line, int col, const std::wstring& newRemainingText) {
     if (col < 0) col = 0;
     if (col > textBuffer[line].length()) col = textBuffer[line].length();
 
-    textBuffer[line].resize(col); // Truncate the current line
+    textBuffer[line].resize(col); 
     textBuffer.insert(textBuffer.begin() + line + 1, newRemainingText); 
 }
 
