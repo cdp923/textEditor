@@ -6,6 +6,9 @@ std::vector<std::wstring> savedTextBuffer;
 void setOriginal(std::vector<std::wstring> originalTextBuffer, HWND hwnd){
     savedTextBuffer = textBuffer; 
     documentModified = false;
+    if (currentFilePath ==L""){
+        currentFilePath =L"New Document";
+    }
     SetWindowTextW(hwnd, currentFilePath.c_str());
 }
 void isModifiedTag(std::vector<std::wstring> originalTextBuffer,HWND hwnd){

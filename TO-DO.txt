@@ -1,7 +1,8 @@
 To-Do:
 
 -Uncomment WM_CLOSE
--few textBuffer in New Document 
+-textBuffer in New Document 
+-Undo leaves or creates spaces and down in weird (something abput delete)
 Controls
     -Copy (After highlight)
     -Paste

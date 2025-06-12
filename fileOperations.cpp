@@ -44,11 +44,9 @@ void LoadTextFromFile(HWND hwnd, const std::wstring& filePath) {
     UpdateScrollBars(hwnd);
     UpdateCaretPosition(hwnd);
     //Caret won't appear
-    CreateCaret(hwnd, NULL, 2, charHeight);
     ShowCaret(hwnd);
+    CreateCaret(hwnd, NULL, 2, charHeight);
     InvalidateRect(hwnd, NULL, TRUE);
-
-    SetWindowTextW(hwnd, currentFilePath.c_str());
 }
 
 bool SaveTextToFile(HWND hwnd, const std::wstring& filePath) {
@@ -66,12 +64,6 @@ bool SaveTextToFile(HWND hwnd, const std::wstring& filePath) {
         }
     }
     outputFile.close(); 
-
-    currentFilePath = filePath; 
-    documentModified = false;   
-
-    
-    SetWindowTextW(hwnd, currentFilePath.c_str());
     return true; // Indicate successful save
 }
 int PromptForSave(HWND hwnd) {
@@ -163,9 +155,10 @@ void OpenFile(HWND hwnd) {
         LoadTextFromFile(hwnd, ofn.lpstrFile); 
         ShowCaret(hwnd);
     }
+    setOriginal(textBuffer, hwnd);
 }
 void SaveFile(HWND hwnd) {
-    if (currentFilePath.empty()) { 
+    if (currentFilePath == L"New Document" ||currentFilePath == L"New Document (Modified)") { 
         SaveFileAs(hwnd); 
     } else { 
         SaveTextToFile(hwnd, currentFilePath); 

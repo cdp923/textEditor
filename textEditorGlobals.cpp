@@ -14,5 +14,5 @@ int caretHiddenCount = 0;
 int padding = 3;    //blank space before the end of the right side
 int bufferZone = 2; //visible lines when scrolling back up
 
-std::wstring currentFilePath;
+std::wstring currentFilePath=L"";
 bool documentModified = false;
