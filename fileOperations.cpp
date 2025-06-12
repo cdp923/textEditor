@@ -3,6 +3,7 @@
 #include "textMetrics.h"       // For calcTextMetrics
 #include "updateCaretAndScroll.h" // For UpdateScrollBars, UpdateCaretPosition
 #include "isModified.h" //For setting modified tag
+#include "undoStack.h"  //To clear undo stack
 
 #include <fstream>   // For std::wifstream, std::wofstream
 #include <commdlg.h> // For GetOpenFileNameW, GetSaveFileNameW
@@ -47,6 +48,7 @@ void LoadTextFromFile(HWND hwnd, const std::wstring& filePath) {
     ShowCaret(hwnd);
     CreateCaret(hwnd, NULL, 2, charHeight);
     InvalidateRect(hwnd, NULL, TRUE);
+    clearStack(undoStack);
 }
 
 bool SaveTextToFile(HWND hwnd, const std::wstring& filePath) {
@@ -132,6 +134,7 @@ void NewDocument(HWND hwnd) {
     ShowCaret(hwnd);
     InvalidateRect(hwnd, NULL, TRUE);
     setOriginal(textBuffer, hwnd);
+    clearStack(undoStack);
 }
 void OpenFile(HWND hwnd) {
     int result = PromptForSave(hwnd); 
@@ -156,6 +159,8 @@ void OpenFile(HWND hwnd) {
         ShowCaret(hwnd);
     }
     setOriginal(textBuffer, hwnd);
+    clearStack(undoStack);
+    
 }
 void SaveFile(HWND hwnd) {
     if (currentFilePath == L"New Document" ||currentFilePath == L"New Document (Modified)") { 

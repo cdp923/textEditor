@@ -147,3 +147,8 @@ void PerformUndo(HWND hwnd) {
     UpdateScrollBars(hwnd);
     InvalidateRect(hwnd, NULL, TRUE);
 }
+void clearStack(std::stack<UndoAction> undoStack){
+    while(!undoStack.empty()){
+        undoStack.pop();
+    }
+}

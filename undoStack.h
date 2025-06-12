@@ -41,3 +41,4 @@ void InsertTextAt(int line, int col, const std::wstring& text);
 void DeleteTextAt(int line, int col, size_t length);
 void MergeLines(int targetLine);
 void SplitLine(int line, int col, const std::wstring& newRemainingText);
+void clearStack(std::stack<UndoAction> undoStack);
