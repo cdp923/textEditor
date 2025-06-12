@@ -43,12 +43,14 @@ void LoadTextFromFile(HWND hwnd, const std::wstring& filePath) {
     // Call functions to update UI
     calcTextMetrics(hwnd);
     UpdateScrollBars(hwnd);
-    UpdateCaretPosition(hwnd);
     //Caret won't appear
-    ShowCaret(hwnd);
+    DestroyCaret();
     CreateCaret(hwnd, NULL, 2, charHeight);
+    UpdateCaretPosition(hwnd);
+    ShowCaret(hwnd);
     InvalidateRect(hwnd, NULL, TRUE);
     clearStack(undoStack);
+    SetFocus(hwnd);
 }
 
 bool SaveTextToFile(HWND hwnd, const std::wstring& filePath) {
@@ -120,21 +122,23 @@ void NewDocument(HWND hwnd) {
     textBuffer.clear(); 
     textBuffer.push_back(L""); 
     currentFilePath.clear();
-    caretLine = 5;   
-    caretCol = 5;
+    caretLine = 0;   
+    caretCol = 0;
     scrollOffsetY = 0;
     scrollOffsetX = 0;
 
     trackCaret = true;
     calcTextMetrics(hwnd);
     UpdateScrollBars(hwnd);
-    UpdateCaretPosition(hwnd);
     //Caret won't appear
+    DestroyCaret();
     CreateCaret(hwnd, NULL, 2, charHeight);
+    UpdateCaretPosition(hwnd);
     ShowCaret(hwnd);
     InvalidateRect(hwnd, NULL, TRUE);
     setOriginal(textBuffer, hwnd);
     clearStack(undoStack);
+    SetFocus(hwnd);
 }
 void OpenFile(HWND hwnd) {
     int result = PromptForSave(hwnd); 
