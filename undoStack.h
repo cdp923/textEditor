@@ -1,8 +1,6 @@
 #pragma once
-
 #include "textEditorGlobals.h"
 #include "updateCaretAndScroll.h"
-
 #include <windows.h>
 #include <stack>
 #include <string>
@@ -18,27 +16,32 @@ enum class UndoActionType {
 struct UndoAction {
     UndoActionType type; // What kind of action was it?
     int line;            
-    int col;             
+    int col;            
     std::wstring text;  
-    bool isContinuation;
-
-
-    UndoAction(UndoActionType type, int line, int col, const std::wstring& text = L"", bool cont = false)
-        : type(type), line(line), col(col), text(text), isContinuation(cont) {}
+    
+    UndoAction(UndoActionType type, int line, int col, const std::wstring& text = L"")
+        : type(type), line(line), col(col), text(text) {}
 };
 
 extern std::stack<UndoAction> undoStack;
-extern UndoAction* g_currentTypingAction;
-extern UndoAction* g_currentDeletionAction;
 
+// Helper functions for character classification and grouping
+bool IsWordChar(wchar_t ch);
+bool ShouldGroupChars(wchar_t char1, wchar_t char2);
+
+// Recording functions for undo actions
+void RecordTyping(int line, int col, wchar_t ch);
+void RecordDeletion(int line, int col, wchar_t ch);
 void RecordAction(UndoActionType type, int line, int col, const std::wstring& text = L"");
-void PerformUndo(HWND hwnd);
-void FinalizeTypingAction(HWND hwnd);
-void FinalizeDeletionAction(HWND hwnd);
-void FinalizeAction(HWND hwnd);
 
+// Undo execution
+void PerformUndo(HWND hwnd);
+
+// Text manipulation functions
 void InsertTextAt(int line, int col, const std::wstring& text);
 void DeleteTextAt(int line, int col, size_t length);
 void MergeLines(int targetLine);
 void SplitLine(int line, int col, const std::wstring& newRemainingText);
-void clearStack(std::stack<UndoAction> undoStack);
+
+// Utility functions
+void clearStack(std::stack<UndoAction>& undoStack);

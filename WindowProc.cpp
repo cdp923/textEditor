@@ -63,14 +63,12 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam){
         }
         case WM_SETFOCUS:
         {
-            FinalizeAction(hwnd);
             UpdateCaretPosition(hwnd); // Ensure caret is at correct position in case window was resized
             ShowCaret(hwnd); // Make the caret visible when the window gains focus
             break;
         }
         case WM_KILLFOCUS:
         {
-            FinalizeAction(hwnd);
             HideCaret(hwnd); // Hide the caret when the window loses focus
             break;
         }
@@ -104,11 +102,9 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam){
             break;
         }
         case WM_KEYDOWN:{
-            if (wParam != VK_SHIFT && wParam != VK_CONTROL && wParam != VK_MENU) {
-                FinalizeAction(hwnd);
-            }
             if (wParam=='Z'&& GetAsyncKeyState(VK_CONTROL) & 0x8000){//Z has to be capital to work, 0x8000 means control key currently held down
                 PerformUndo(hwnd);
+                break;
             }
             switch (wParam){
                 case VK_LEFT:{
@@ -126,7 +122,6 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam){
                     if(caretCol<textBuffer[caretLine].length()){
                         caretCol++;
                     }else if (caretLine<textBuffer.size()-1){
-                        caretCol++; 
                         caretLine++;
                         caretCol = 0;
                     }
@@ -165,8 +160,6 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam){
         }
         case WM_LBUTTONDOWN:
         {
-            
-            FinalizeAction(hwnd);
 
             int mouseX = LOWORD(lParam);
             int mouseY = HIWORD(lParam);
@@ -253,26 +246,22 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam){
         }
         case WM_MOUSEWHEEL:
         {
-            FinalizeAction(hwnd);
             HandleMouseWheelScroll(hwnd, wParam);
             return 0;
         }
         case WM_VSCROLL:
         {
-            FinalizeAction(hwnd);
             HandleVerticalScroll(hwnd, wParam);
             return 0;
         }
         case WM_HSCROLL:
         {
-            FinalizeAction(hwnd);
             HandleHorizontalScroll(hwnd, wParam);
             return 0;
         }
         case WM_COMMAND:
         {
             trackCaret = true;
-            FinalizeAction(hwnd);
             switch (LOWORD(wParam)) {
                 case ID_FILE_NEW:
                     NewDocument(hwnd);
