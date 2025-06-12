@@ -94,7 +94,7 @@ int PromptForSave(HWND hwnd) {
         ofn.Flags = OFN_PATHMUSTEXIST | OFN_OVERWRITEPROMPT; // Dialog flags
         ofn.lpstrDefExt = L"txt"; // Default extension
 
-        if (currentFilePath.empty()) { 
+        if (currentFilePath == L"") { 
             if (GetSaveFileNameW(&ofn)) { // Open "Save As" dialog
                 return SaveTextToFile(hwnd, ofn.lpstrFile) ? IDYES : IDCANCEL;
             } else {
@@ -163,7 +163,7 @@ void OpenFile(HWND hwnd) {
     
 }
 void SaveFile(HWND hwnd) {
-    if (currentFilePath == L"New Document" ||currentFilePath == L"New Document (Modified)") { 
+    if (currentFilePath == L"") { 
         SaveFileAs(hwnd); 
     } else { 
         SaveTextToFile(hwnd, currentFilePath); 
@@ -177,7 +177,7 @@ void SaveFileAs(HWND hwnd) {
     OPENFILENAMEW ofn; // Structure for save file dialog
     wchar_t szFile[MAX_PATH] = L""; // Buffer for file path
 
-    if (!currentFilePath.empty()) { 
+    if (currentFilePath != L"") { 
         const wchar_t* fileName = wcsrchr(currentFilePath.c_str(), L'\\');
         if (fileName) {
             StringCchCopyW(szFile, MAX_PATH, fileName + 1); // Copy filename (after last backslash)

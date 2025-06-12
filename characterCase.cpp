@@ -71,30 +71,36 @@ void backspaceCase(wchar_t ch, HWND hwnd){
     if (caretCol > 0) {
         FinalizeTypingAction(hwnd);
         wchar_t deletedChar = textBuffer[caretLine][caretCol - 1];
+        
         //Undo logic start
-        bool needsNewDelAction = 
-        (g_currentDeletionAction == nullptr) ||
-        (caretLine != g_currentDeletionAction->line) ||
-        (caretCol != g_currentDeletionAction->col + g_currentDeletionAction->text.length());
-    //Was having trouble with undoing single words over a space
-    if(deletedChar ==L' '){
-        FinalizeDeletionAction(hwnd);
-        g_currentDeletionAction = new UndoAction(UndoActionType::DELETE_TEXT, 
-                caretLine, caretCol-1, 
-                std::wstring(1, deletedChar));
-    }
-    if (needsNewDelAction) {
-        FinalizeDeletionAction(hwnd);
-        g_currentDeletionAction = new UndoAction(UndoActionType::DELETE_TEXT, 
-                                            caretLine, caretCol-1, 
-                                            std::wstring(1, deletedChar));
-    } else {
-        g_currentDeletionAction->text += deletedChar;
-    }
-    //Undo logic end
-    //RecordAction(UndoActionType::DELETE_TEXT, caretLine, caretCol - 1, std::wstring(1, deletedChar));
-    DeleteTextAt(caretLine, caretCol - 1, 1); // Erase character to the left
-    caretCol--;
+        bool needsNewDelAction =
+            (g_currentDeletionAction == nullptr) ||
+            (caretLine != g_currentDeletionAction->line) ||
+            (caretCol != g_currentDeletionAction->col + g_currentDeletionAction->text.length());
+        
+        // Handle space characters - always finalize and create new action
+        if(deletedChar == L' ') {
+            FinalizeDeletionAction(hwnd);
+            g_currentDeletionAction = new UndoAction(UndoActionType::DELETE_TEXT,
+                    caretLine, caretCol-1,
+                    std::wstring(1, deletedChar));
+        }
+        // Handle other characters - only create new action if needed
+        if (needsNewDelAction&&deletedChar != L' ') {
+            FinalizeDeletionAction(hwnd);
+            g_currentDeletionAction = new UndoAction(UndoActionType::DELETE_TEXT,
+                                                caretLine, caretCol-1,
+                                                std::wstring(1, deletedChar));
+        } else {
+            // Prepend the character since we're deleting backwards
+            g_currentDeletionAction->text = deletedChar + g_currentDeletionAction->text;
+            // Update the starting position
+            g_currentDeletionAction->col = caretCol - 1;
+        }
+        //Undo logic end
+        
+        DeleteTextAt(caretLine, caretCol - 1, 1); // Erase character to the left
+        caretCol--;
     } else if (caretLine > 0) {
         FinalizeAction(hwnd);
         // Backspace at beginning of line: merge with previous line
