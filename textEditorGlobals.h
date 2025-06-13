@@ -22,4 +22,15 @@ extern int bufferZone;
 extern std::wstring currentFilePath;
 extern bool documentModified;
 
+struct Selection {
+    int startLine, startCol;
+    int endLine, endCol;
+    bool active;
+
+    void Clear() { 
+    startLine = startCol = endLine = endCol = -1; 
+    active = false; 
+    }
+};
+extern Selection selection;
 #include "resource.h"

@@ -9,6 +9,7 @@
 #include "undoStack.h"              // For stack operations
 #include "characterCase.h"          //For characterCase
 #include "isModified.h"
+#include "cursorControls.h"
 
 #include <algorithm> 
 
@@ -40,23 +41,26 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam){
             InvalidateRect(hwnd, NULL, TRUE); 
             break;
         }
-        case WM_PAINT:
-        {
+        case WM_PAINT: {
             PAINTSTRUCT ps;
             HDC hdc = BeginPaint(hwnd, &ps);
-             // All painting occurs here, between BeginPaint and EndPaint.
             HFONT hOldFont = (HFONT)SelectObject(hdc, font);
-            FillRect(hdc, &ps.rcPaint, (HBRUSH) (COLOR_WINDOW+1));
-            // Loop through and draw visible lines (using scrollOffset and linesPerPage)
+            
+            FillRect(hdc, &ps.rcPaint, (HBRUSH)(COLOR_WINDOW+1));
+            
+            // Draw text first
+            SetTextColor(hdc, GetSysColor(COLOR_WINDOWTEXT));
+            SetBkMode(hdc, TRANSPARENT);
+            
             for (int i = scrollOffsetY; i < textBuffer.size(); ++i) {
                 int screenLineY = (i - scrollOffsetY) * charHeight;
-
-                // Only draw lines that are actually visible within the client area
-                if (screenLineY >= 0 && screenLineY < ps.rcPaint.bottom) { // Check if line is within paint rect vertically
-                    TextOutW(hdc, -scrollOffsetX, screenLineY, textBuffer[i].c_str(), textBuffer[i].length());
+                if (screenLineY >= 0 && screenLineY < ps.rcPaint.bottom) {
+                    TextOutW(hdc, -scrollOffsetX, screenLineY, 
+                            textBuffer[i].c_str(), textBuffer[i].length());
                 }
             }
-            // Always select the old font back!
+            
+            cursorChecks(ps, hwnd, hdc);
             SelectObject(hdc, hOldFont);
             EndPaint(hwnd, &ps);
             return 0;
@@ -129,13 +133,13 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam){
                 }
                 case VK_DOWN:{
                     trackCaret = true; 
-                    if (caretLine <= textBuffer.size()){
+                    if (caretLine < textBuffer.size()-1){
                         caretLine++;
                         if(caretCol>textBuffer[caretLine].length()){
                             caretCol = textBuffer[caretLine].length();
                         }
-                    }else if (caretLine >= textBuffer.size()) {
-                        textBuffer.resize(caretLine + 1);
+                    }else {
+                        textBuffer.push_back(L"");
                         caretLine++;
                         isModifiedTag(textBuffer, hwnd);
                     }
@@ -158,90 +162,17 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam){
             UpdateCaretPosition(hwnd); 
             break;
         }
+        case WM_MOUSEMOVE: {
+            mouseDragL(hwnd, lParam, wParam);
+        break;
+        }
         case WM_LBUTTONDOWN:
         {
-
-            int mouseX = LOWORD(lParam);
-            int mouseY = HIWORD(lParam);
-
-            
-            int tempCaretLine = (mouseY / charHeight) + scrollOffsetY;
-
-           
-            if (tempCaretLine < 0) {
-                tempCaretLine = 0;
-            }
-            // If clicking below the last line of text, place caret at the end of the last line
-            if (tempCaretLine >= textBuffer.size()) {
-                caretLine = textBuffer.size() - 1; 
-                if (caretLine < 0) caretLine = 0; 
-                caretCol = textBuffer[caretLine].length(); 
-                
-                
-                trackCaret = true; 
-                InvalidateRect(hwnd, NULL, TRUE);
-                UpdateCaretPosition(hwnd);
-                SetFocus(hwnd);
-                return 0; 
-            }
-
-            // Now tempCaretLine is guaranteed to be a valid index within textBuffer
-            caretLine = tempCaretLine;
-
-           
-            HDC hdc = GetDC(hwnd);
-            HFONT hOldFont = (HFONT)SelectObject(hdc, font); 
-
-            const std::wstring& lineContent = textBuffer[caretLine];
-            int effectiveMouseX = mouseX + scrollOffsetX;
-            int tempCaretCol = 0;
-
-            if (!lineContent.empty()) {
-                
-                int low = 0;
-                int high = lineContent.length();
-                int mid;
-
-                while (low <= high) {
-                    mid = low + (high - low) / 2;
-                    SIZE size;
-                    GetTextExtentPoint32W(hdc, lineContent.c_str(), mid, &size);
-
-                    if (size.cx <= effectiveMouseX) {
-                        tempCaretCol = mid; // This many characters fit to the left of click
-                        low = mid + 1;
-                    } else {
-                        high = mid - 1;
-                    }
-                }
-
-                // Adjust for midpoint: If click is past the midpoint of the character at tempCaretCol,
-                // move to the beginning of the next character.
-                if (tempCaretCol < lineContent.length()) { 
-                    SIZE charWidthSize;
-                    GetTextExtentPoint32W(hdc, lineContent.c_str() + tempCaretCol, 1, &charWidthSize);
-                    
-                    SIZE currentTextWidth; 
-                    GetTextExtentPoint32W(hdc, lineContent.c_str(), tempCaretCol, &currentTextWidth);
-
-                    if (effectiveMouseX > (currentTextWidth.cx + charWidthSize.cx / 2)) {
-                        tempCaretCol++;
-                    }
-                }
-            } 
-            if (tempCaretCol > lineContent.length()) {
-                tempCaretCol = lineContent.length();
-            }
-            caretCol = tempCaretCol;
-
-            SelectObject(hdc, hOldFont);
-            ReleaseDC(hwnd, hdc);
-
-            
-            trackCaret = true; 
-            InvalidateRect(hwnd, NULL, TRUE);
-            UpdateCaretPosition(hwnd);
-            SetFocus(hwnd); 
+            mouseDownL(hwnd, lParam, wParam);
+            break;
+        }
+        case WM_LBUTTONUP:{
+            mouseUpL(hwnd);
             break;
         }
         case WM_MOUSEWHEEL:

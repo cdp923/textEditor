@@ -1,8 +1,8 @@
 To-Do:
 
--Uncomment WM_CLOSE
--textBuffer in New Document 
--Undo leaves or creates spaces and down in weird (something abput delete)
+-Uncomment WM_CLOSE x
+-textBuffer in New Document x
+-Undo leaves or creates spaces and down in weird (something abput delete) x
 Controls
     -Copy (After highlight)
     -Paste
@@ -33,5 +33,6 @@ Customization:
     -AutoComplete
     -AutoCorrect
 Logic:
-    -Modified tag
-    -Correct deleted line undo
+    -Modified tag x
+    -Correct deleted line undo x
+    -Down one with arrow doesnt create modified tag. maybe because L"" is true still? x (maybe)

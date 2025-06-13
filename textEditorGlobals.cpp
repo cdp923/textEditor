@@ -16,3 +16,4 @@ int bufferZone = 2; //visible lines when scrolling back up
 
 std::wstring currentFilePath=L"";
 bool documentModified = false;
+Selection selection;
