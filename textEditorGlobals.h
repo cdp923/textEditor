@@ -1,5 +1,6 @@
 #pragma once
 
+#include "resource.h"
 #include <vector>
 #include <string>
 
@@ -17,7 +18,8 @@ extern int maxLineWidthPixels;
 extern bool trackCaret; 
 extern int caretHiddenCount;
 extern int padding;
-extern int bufferZone;
+extern int bufferZoneY;
+extern int bufferZoneX;
 
 extern std::wstring currentFilePath;
 extern bool documentModified;
@@ -33,4 +35,4 @@ struct Selection {
     }
 };
 extern Selection selection;
-#include "resource.h"
+extern std::wstring selectedText;

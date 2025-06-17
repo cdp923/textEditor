@@ -22,20 +22,21 @@ void UpdateCaretPosition(HWND hwnd) {
     GetClientRect(hwnd, &clientRect);
     if (trackCaret){
     // Horizontal auto-scroll
-        if (x <= scrollOffsetX + padding) {
-            scrollOffsetX = std::max(0, x - padding);
+    bufferZoneX = (clientRect.right - clientRect.left)/2;
+        if (x <= scrollOffsetX + bufferZoneX) {
+            scrollOffsetX = std::max(0, x - bufferZoneX);
         }
         else if (x > scrollOffsetX + clientRect.right - padding) {
             scrollOffsetX = x - clientRect.right + padding;
         }
         
         // Vertical auto-scroll
-        if (caretLine < scrollOffsetY + bufferZone) {
+        if (caretLine < scrollOffsetY + bufferZoneY) {
             if ((caretLine <= 1)) {
                 scrollOffsetY = 0;
             }
             else {
-                scrollOffsetY = caretLine - bufferZone;
+                scrollOffsetY = caretLine - bufferZoneY;
             }
         }
         else if (caretLine >= scrollOffsetY + linesPerPage) {

@@ -8,5 +8,5 @@
 void mouseDownL(HWND hwnd, LPARAM lParam, WPARAM wParam);
 void mouseDragL(HWND hwnd, LPARAM lParam, WPARAM wParam);
 void mouseUpL(HWND hwnd);
-void DrawSelectionHighlight(HDC hdc, const RECT& rcLine);
-void cursorChecks(PAINTSTRUCT ps, HWND hwnd, HDC hdc);
+void DrawSelections(HDC hdc, const RECT& paintRect);
+std::wstring getSelectedText(const Selection& selection, const std::vector<std::wstring>& textBuffer);

@@ -25,6 +25,14 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam){
                 OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY,
                 FF_DONTCARE | FIXED_PITCH, L"Consolas" 
             );
+                // Register clipboard format
+            if (!OpenClipboard(hwnd)) {
+                MessageBoxW(hwnd, L"Clipboard initialization failed", L"Error", MB_OK);
+            } else {
+                EmptyClipboard();
+                CloseClipboard();
+            }
+
             calcTextMetrics(hwnd);
             UpdateScrollBars(hwnd);
             CreateCaret(hwnd, NULL, 2, charHeight);
@@ -46,11 +54,17 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam){
             HDC hdc = BeginPaint(hwnd, &ps);
             HFONT hOldFont = (HFONT)SelectObject(hdc, font);
             
+
             FillRect(hdc, &ps.rcPaint, (HBRUSH)(COLOR_WINDOW+1));
             
-            // Draw text first
+            //Draw selection highlights FIRST
+            if (selection.active) {
+                DrawSelections(hdc, ps.rcPaint);  // New optimized function
+            }
+            
+            //Draw text OVER the highlights
             SetTextColor(hdc, GetSysColor(COLOR_WINDOWTEXT));
-            SetBkMode(hdc, TRANSPARENT);
+            SetBkMode(hdc, TRANSPARENT);  // Important for selection visibility
             
             for (int i = scrollOffsetY; i < textBuffer.size(); ++i) {
                 int screenLineY = (i - scrollOffsetY) * charHeight;
@@ -60,7 +74,11 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam){
                 }
             }
             
-            cursorChecks(ps, hwnd, hdc);
+
+            if (GetFocus() == hwnd) {
+                ShowCaret(hwnd);
+            }
+            
             SelectObject(hdc, hOldFont);
             EndPaint(hwnd, &ps);
             return 0;
@@ -106,9 +124,23 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam){
             break;
         }
         case WM_KEYDOWN:{
-            if (wParam=='Z'&& GetAsyncKeyState(VK_CONTROL) & 0x8000){//Z has to be capital to work, 0x8000 means control key currently held down
-                PerformUndo(hwnd);
-                break;
+            bool ctrlPressed = (GetAsyncKeyState(VK_CONTROL) & 0x8000);
+    
+            if (ctrlPressed) {
+            switch (wParam) {
+                case 'C':  // Ctrl+C
+                    if (selection.active) {
+                        SendMessage(hwnd, WM_COPY, 0, 0);
+                    }
+                    break;
+                    
+                case 'V':  // Ctrl+V
+                    SendMessage(hwnd, WM_PASTE, 0, 0);
+                    break;
+                case 'Z':  // Ctrl+Z
+                    PerformUndo(hwnd);
+                    break;
+                }
             }
             switch (wParam){
                 case VK_LEFT:{
@@ -188,6 +220,39 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam){
         case WM_HSCROLL:
         {
             HandleHorizontalScroll(hwnd, wParam);
+            return 0;
+        }
+        case WM_COPY:{
+            if (!selectedText.empty()) {
+                HGLOBAL hMem = GlobalAlloc(GMEM_MOVEABLE, (selectedText.size() + 1) * sizeof(wchar_t));
+                if (hMem) {
+                    wmemcpy((wchar_t*)GlobalLock(hMem), selectedText.c_str(), selectedText.size() + 1);
+                    GlobalUnlock(hMem);
+
+                    OpenClipboard(hwnd);
+                    EmptyClipboard();
+                    SetClipboardData(CF_UNICODETEXT, hMem);
+                    CloseClipboard();
+                }
+            }
+            return 0;
+        }
+        case WM_PASTE:{
+            if (!IsClipboardFormatAvailable(CF_UNICODETEXT)) {
+                return 0;}
+
+            OpenClipboard(hwnd);
+            HGLOBAL hMem = GetClipboardData(CF_UNICODETEXT);
+            if (hMem) {
+                LPCWSTR clipboardText = (LPCWSTR)GlobalLock(hMem);
+                if (clipboardText) {
+                    // Insert at caret position
+                    InsertTextAt(caretLine, caretCol, clipboardText);
+                    GlobalUnlock(hMem);
+                }
+            }
+            CloseClipboard();
+            InvalidateRect(hwnd, NULL, TRUE);
             return 0;
         }
         case WM_COMMAND:

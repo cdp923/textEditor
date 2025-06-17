@@ -84,6 +84,7 @@ void mouseDownL(HWND hwnd, LPARAM lParam, WPARAM wParam){
     selection.startLine = selection.endLine = caretLine;
     selection.startCol = selection.endCol = caretCol;
     selection.active = true;
+    selectedText = getSelectedText(selection, textBuffer);
     
     
 
@@ -152,6 +153,7 @@ void mouseDragL(HWND hwnd, LPARAM lParam, WPARAM wParam){
         selection.endLine = caretLine;
         selection.endCol = caretCol;
         selection.active = true;
+        selectedText = getSelectedText(selection, textBuffer);
         
         // Visual update
         trackCaret = true;
@@ -167,9 +169,11 @@ void mouseUpL(HWND hwnd){
         // Finalize the selection (optional - you may have already updated during WM_MOUSEMOVE)
         selection.endLine = caretLine;
         selection.endCol = caretCol;
+        selectedText = getSelectedText(selection, textBuffer);
 
         if (selection.startLine == selection.endLine && 
             selection.startCol == selection.endCol) {
+            selectedText.clear();
             selection.Clear();
         }
 
@@ -178,64 +182,125 @@ void mouseUpL(HWND hwnd){
     }
 
 }
-void DrawSelectionHighlight(HDC hdc, const RECT& rcLine) {
-    // Use system selection colors (adapts to user's theme)
-    HBRUSH hbrHighlight = GetSysColorBrush(COLOR_HIGHLIGHT);
-    SetBkMode (hdc, TRANSPARENT);
-    SetTextColor(hdc, GetSysColor(COLOR_HIGHLIGHTTEXT));
-    SetBkColor(hdc, GetSysColor(COLOR_HIGHLIGHT));
-    FillRect(hdc, &rcLine, hbrHighlight);
-}
-void cursorChecks(PAINTSTRUCT ps, HWND hwnd, HDC hdc){
-    if (selection.active) {
-        // Normalize selection
-        int startLine = selection.startLine;
-        int endLine = selection.endLine;
-        int startCol = selection.startCol;
-        int endCol = selection.endCol;
+void DrawSelections(HDC hdc, const RECT& paintRect) {
+    // Normalize selection coordinates
+    int startLine = std::min(selection.startLine, selection.endLine);
+    int endLine = std::max(selection.startLine, selection.endLine);
+    int startCol, endCol;
+    
+    if (selection.startLine < selection.endLine) {
+        startCol = selection.startCol;
+        endCol = selection.endCol;
+    } else if (selection.startLine > selection.endLine) {
+        startCol = selection.endCol;
+        endCol = selection.startCol;
+    } else {
+        startCol = std::min(selection.startCol, selection.endCol);
+        endCol = std::max(selection.startCol, selection.endCol);
+    }
+    
+    // Setup selection colors
+    HBRUSH hbrHighlight = CreateSolidBrush(RGB(180, 215, 255));  // Light blue
+    COLORREF oldTextColor = SetTextColor(hdc, RGB(0, 0, 0));
+    COLORREF oldBkColor = SetBkColor(hdc, RGB(180, 215, 255));
+    
+    // Draw visible selections
+    for (int line = std::max(startLine, scrollOffsetY); 
+         line <= std::min(endLine, scrollOffsetY + (int)paintRect.bottom / charHeight); 
+         line++) {
         
-        if (startLine > endLine || (startLine == endLine && startCol > endCol)) {
-            std::swap(startLine, endLine);
-            std::swap(startCol, endCol);
+        RECT rcLine;
+        rcLine.top = (line - scrollOffsetY) * charHeight;
+        rcLine.bottom = rcLine.top + charHeight;
+        
+        // Calculate horizontal bounds
+        if (line == startLine && line == endLine) {
+            rcLine.left = startCol * charWidth - scrollOffsetX;
+            rcLine.right = endCol * charWidth - scrollOffsetX;
+        } 
+        else if (line == startLine) {
+            rcLine.left = startCol * charWidth - scrollOffsetX;
+            rcLine.right = textBuffer[line].length() * charWidth - scrollOffsetX;
+        }
+        else if (line == endLine) {
+            rcLine.left = 0 - scrollOffsetX;
+            rcLine.right = endCol * charWidth - scrollOffsetX;
+        }
+        else {
+            rcLine.left = 0 - scrollOffsetX;
+            rcLine.right = textBuffer[line].length() * charWidth - scrollOffsetX;
         }
         
-        // Draw highlights
-        for (int line = std::max(startLine, scrollOffsetY); 
-            line <= std::min(endLine, std::min(scrollOffsetY + (int)ps.rcPaint.bottom / charHeight, (int)textBuffer.size() - 1)); 
-            line++) {
+        // Clip to visible area
+        rcLine.left = std::max(rcLine.left, paintRect.left);
+        rcLine.right = std::min(rcLine.right, paintRect.right);
+        
+        if (rcLine.right > rcLine.left) {
+            // Draw highlight background
+            FillRect(hdc, &rcLine, hbrHighlight);
             
-            RECT rcLine;
-            rcLine.top = (line - scrollOffsetY) * charHeight;
-            rcLine.bottom = rcLine.top + charHeight;
+            // Redraw text with selection colors
+            int textStart = std::max(0, ((int)rcLine.left + scrollOffsetX) / charWidth);
+            int textEnd = std::min((int)textBuffer[line].length(), 
+                             ((int)rcLine.right + scrollOffsetX) / charWidth);
             
-            if (line == startLine && line == endLine) {
-                rcLine.left = startCol * charWidth - scrollOffsetX;
-                rcLine.right = endCol * charWidth - scrollOffsetX;
-            } 
-            else if (line == startLine) {
-                rcLine.left = startCol * charWidth - scrollOffsetX;
-                rcLine.right = textBuffer[line].length() * charWidth - scrollOffsetX;
-            }
-            else if (line == endLine) {
-                rcLine.left = 0 - scrollOffsetX;
-                rcLine.right = endCol * charWidth - scrollOffsetX;
-            }
-            else {
-                rcLine.left = 0 - scrollOffsetX;
-                rcLine.right = textBuffer[line].length() * charWidth - scrollOffsetX;
-            }
-            
-            RECT rcClient;
-            GetClientRect(hwnd, &rcClient);
-            rcLine.left = std::max(rcLine.left, 0L);
-            rcLine.right = std::min(rcLine.right, rcClient.right);
-            
-            if (rcLine.right > rcLine.left) {
-                // Choose one of these methods:
-                DrawSelectionHighlight(hdc, rcLine);    // Recommended: follows user theme
-                // DrawSelectionHighlight_Simple(hdc, rcLine);  // Alternative: custom color
-                // DrawSelectionHighlight_Pattern(hdc, rcLine); // Alternative: pattern effect
+            if (textEnd > textStart) {
+                std::wstring visibleText = textBuffer[line].substr(
+                    textStart, textEnd - textStart);
+                TextOutW(hdc, 
+                        textStart * charWidth - scrollOffsetX, 
+                        rcLine.top,
+                        visibleText.c_str(), 
+                        visibleText.length());
             }
         }
     }
+    // Restore DC state
+    SetTextColor(hdc, oldTextColor);
+    SetBkColor(hdc, oldBkColor);
+    DeleteObject(hbrHighlight);
+}
+
+std::wstring getSelectedText(const Selection& selection, const std::vector<std::wstring>& textBuffer) {
+    std::wstring selectedText;
+
+    // Validate selection
+    if (!selection.active || 
+        selection.startLine >= textBuffer.size() || 
+        selection.endLine >= textBuffer.size()) {
+        return selectedText;
+    }
+
+    // Normalize selection coordinates
+    int startLine = std::min(selection.startLine, selection.endLine);
+    int endLine = std::max(selection.startLine, selection.endLine);
+    int startCol = (selection.startLine < selection.endLine) ? selection.startCol : selection.endCol;
+    int endCol = (selection.startLine < selection.endLine) ? selection.endCol : selection.startCol;
+
+    // Handle single line selection
+    if (startLine == endLine) {
+        if (startCol == endCol) return selectedText; // Empty selection
+        startCol = std::min(startCol, (int)textBuffer[startLine].length());
+        endCol = std::min(endCol, (int)textBuffer[startLine].length());
+        return textBuffer[startLine].substr(startCol, endCol - startCol);
+    }
+
+    // Multi-line selection
+    for (int line = startLine; line <= endLine; ++line) {
+        int lineStart = (line == startLine) ? startCol : 0;
+        int lineEnd = (line == endLine) ? endCol : textBuffer[line].length();
+
+        // Clamp to valid range
+        lineStart = std::min(lineStart, (int)textBuffer[line].length());
+        lineEnd = std::min(lineEnd, (int)textBuffer[line].length());
+
+        if (lineStart < lineEnd) {
+            selectedText += textBuffer[line].substr(lineStart, lineEnd - lineStart);
+        }
+
+        // Add newline except after last line
+        if (line < endLine) selectedText += L'\n';
+    }
+
+    return selectedText;
 }
