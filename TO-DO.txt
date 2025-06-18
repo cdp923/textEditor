@@ -10,17 +10,18 @@ Controls
     -Page down
     -Shift + tab (After highlight)
     -Highlighted shift
+    -Find
 Navigation:
     -Left padding
-        -Initial placement
-        -Cursor tracking
+        -Initial placement x
+        -Cursor tracking  x
             -Left
             -Right
-    -Track caret when on Left
+    -Track caret when on Left x
     -Caret tracks tabs when moving vertical (Maybe)
     -Bullet Logic
 Cursor:
-    -Highlight
+    -Highlight x
     -Right click
     -Hold scroll wheel
     -Shift + Scroll to change font size

@@ -10,6 +10,7 @@
 #include "characterCase.h"          //For characterCase
 #include "isModified.h"
 #include "cursorControls.h"
+#include "searchMode.h" //For control - F search
 
 #include <algorithm> 
 
@@ -61,6 +62,9 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam){
             if (selection.active) {
                 DrawSelections(hdc, ps.rcPaint);  // New optimized function
             }
+            if (isSearchMode) {
+                DrawSearchMatches(hdc, ps.rcPaint);
+            }
             
             //Draw text OVER the highlights
             SetTextColor(hdc, GetSysColor(COLOR_WINDOWTEXT));
@@ -73,8 +77,9 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam){
                             textBuffer[i].c_str(), textBuffer[i].length());
                 }
             }
-            
-
+            if (isSearchMode) {
+                DrawSearchBox(hwnd, hdc);
+            }
             if (GetFocus() == hwnd) {
                 ShowCaret(hwnd);
             }
@@ -120,7 +125,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam){
         case WM_CHAR:
         {
             wchar_t ch = (wchar_t)wParam;
-            characterCase(ch, hwnd);
+            characterCase(ch, hwnd, wParam);
             break;
         }
         case WM_KEYDOWN:{
@@ -140,6 +145,30 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam){
                 case 'Z':  // Ctrl+Z
                     PerformUndo(hwnd);
                     break;
+                case 'F':{
+                    ActivateSearchMode(hwnd);
+                    break;
+                    }
+                }
+            }
+            if (isSearchMode) {
+                switch (wParam) {
+                    case VK_RETURN:
+                        FindNext(hwnd);
+                        InvalidateRect(hwnd, NULL, TRUE);
+                        break;
+                    case VK_ESCAPE:
+                        DeactivateSearchMode(hwnd);
+                        InvalidateRect(hwnd, NULL, TRUE);
+                        break;
+                    case VK_F3:
+                        if (GetKeyState(VK_SHIFT) & 0x8000) {
+                            FindPrevious(hwnd);
+                        } else {
+                            FindNext(hwnd);
+                            InvalidateRect(hwnd, NULL, TRUE);
+                        }
+                        break;
                 }
             }
             switch (wParam){

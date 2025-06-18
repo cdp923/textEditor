@@ -4,34 +4,39 @@
 #include "undoStack.h"
 #include "textMetrics.h"
 #include "isModified.h"
+#include "searchMode.h"
 
-void characterCase(wchar_t ch, HWND hwnd) {
+void characterCase(wchar_t ch, HWND hwnd, WPARAM wParam) {
     // Ensure we are within valid line bounds AND process valid input characters
-    if (ch >= 32 || ch == L'\t' || ch == L'\r' || ch == L'\b') {
-        if (caretLine >= textBuffer.size()) {
-            textBuffer.resize(caretLine + 1);
-        }
-        
-        switch(ch) {
-            case L'\t': {
-                tabCase(ch, hwnd);
-                break;
+    if (isSearchMode){
+        HandleSearchInput(hwnd, wParam);
+    }else{
+        if (ch >= 32 || ch == L'\t' || ch == L'\r' || ch == L'\b') {
+            if (caretLine >= textBuffer.size()) {
+                textBuffer.resize(caretLine + 1);
             }
-            case L'\b': { // Backspace
-                backspaceCase(ch, hwnd);
-                break;
-            }
-            case L'\r': { // Enter key
-                returnCase(ch, hwnd);
-                break;
-            }
-            case L' ': {
-                spaceCase(ch, hwnd);
-                break;
-            }
-            default: { // All other printable characters
-                defaultCase(ch, hwnd);
-                break;
+            
+            switch(ch) {
+                case L'\t': {
+                    tabCase(ch, hwnd);
+                    break;
+                }
+                case L'\b': { // Backspace
+                    backspaceCase(ch, hwnd);
+                    break;
+                }
+                case L'\r': { // Enter key
+                    returnCase(ch, hwnd);
+                    break;
+                }
+                case L' ': {
+                    spaceCase(ch, hwnd);
+                    break;
+                }
+                default: { // All other printable characters
+                    defaultCase(ch, hwnd);
+                    break;
+                }
             }
         }
         

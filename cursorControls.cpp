@@ -1,27 +1,76 @@
 #define NOMINMAX
 #include "cursorControls.h"
 #include "updateCaretAndScroll.h"
+#include "searchMode.h"
 
 #include <windows.h>
 #include <algorithm>
 
-void mouseDownL(HWND hwnd, LPARAM lParam, WPARAM wParam){
+void mouseDownL(HWND hwnd, LPARAM lParam, WPARAM wParam) {
     int mouseX = LOWORD(lParam);
     int mouseY = HIWORD(lParam);
-
     
+    // First check if click is in search box
+    if (isSearchMode) {
+        RECT clientRect;
+        GetClientRect(hwnd, &clientRect);
+        int searchBoxTop = clientRect.bottom - searchBoxHeight;
+        
+        if (mouseY > searchBoxTop) {
+            // Handle search box clicks
+            int buttonRight = clientRect.right - 10;
+            int buttonTop = searchBoxTop + 3;
+            int buttonSize = 24;
+            
+            // Up button
+            if (mouseX > buttonRight - buttonSize*2 && mouseX < buttonRight - buttonSize &&
+                mouseY > buttonTop && mouseY < buttonTop + buttonSize) {
+                FindPrevious(hwnd);
+                return;
+            }
+            // Down button
+            else if (mouseX > buttonRight - buttonSize && mouseX < buttonRight &&
+                     mouseY > buttonTop && mouseY < buttonTop + buttonSize) {
+                FindNext(hwnd);
+                return;
+            }
+            // Text area click - set caret position
+            else {
+                HDC hdc = GetDC(hwnd);
+                HFONT hOldFont = (HFONT)SelectObject(hdc, font);
+                
+                int clickX = mouseX - 10; // Account for margin
+                searchCaretPos = (int)searchBoxText.length();
+                
+                // Find click position in text
+                for (int i = 7; i <= searchBoxText.length(); i++) {
+                    SIZE textSize;
+                    GetTextExtentPoint32W(hdc, searchBoxText.c_str(), i, &textSize);
+                    if (textSize.cx >= clickX) {
+                        searchCaretPos = i;
+                        break;
+                    }
+                }
+                
+                SelectObject(hdc, hOldFont);
+                ReleaseDC(hwnd, hdc);
+                InvalidateRect(hwnd, NULL, TRUE);
+                return;
+            }
+        }
+    }
+    
+    // Normal text area handling (original code)
     int tempCaretLine = (mouseY / charHeight) + scrollOffsetY;
-
     
     if (tempCaretLine < 0) {
         tempCaretLine = 0;
     }
-    // If clicking below the last line of text, place caret at the end of the last line
+    
     if (tempCaretLine >= textBuffer.size()) {
         caretLine = textBuffer.size() - 1; 
         if (caretLine < 0) caretLine = 0; 
         caretCol = textBuffer[caretLine].length(); 
-        
         
         trackCaret = true; 
         InvalidateRect(hwnd, NULL, TRUE);
@@ -30,10 +79,8 @@ void mouseDownL(HWND hwnd, LPARAM lParam, WPARAM wParam){
         return; 
     }
 
-    // Now tempCaretLine is guaranteed to be a valid index within textBuffer
     caretLine = tempCaretLine;
 
-    
     HDC hdc = GetDC(hwnd);
     HFONT hOldFont = (HFONT)SelectObject(hdc, font); 
 
@@ -42,7 +89,6 @@ void mouseDownL(HWND hwnd, LPARAM lParam, WPARAM wParam){
     int tempCaretCol = 0;
 
     if (!lineContent.empty()) {
-        
         int low = 0;
         int high = lineContent.length();
         int mid;
@@ -53,15 +99,13 @@ void mouseDownL(HWND hwnd, LPARAM lParam, WPARAM wParam){
             GetTextExtentPoint32W(hdc, lineContent.c_str(), mid, &size);
 
             if (size.cx <= effectiveMouseX) {
-                tempCaretCol = mid; // This many characters fit to the left of click
+                tempCaretCol = mid;
                 low = mid + 1;
             } else {
                 high = mid - 1;
             }
         }
 
-        // Adjust for midpoint: If click is past the midpoint of the character at tempCaretCol,
-        // move to the beginning of the next character.
         if (tempCaretCol < lineContent.length()) { 
             SIZE charWidthSize;
             GetTextExtentPoint32W(hdc, lineContent.c_str() + tempCaretCol, 1, &charWidthSize);
@@ -78,7 +122,7 @@ void mouseDownL(HWND hwnd, LPARAM lParam, WPARAM wParam){
         tempCaretCol = lineContent.length();
     }
     caretCol = tempCaretCol;
-    SetCapture(hwnd);  // Continue tracking mouse outside window
+    SetCapture(hwnd);
     
     // Store selection start
     selection.startLine = selection.endLine = caretLine;
@@ -86,11 +130,8 @@ void mouseDownL(HWND hwnd, LPARAM lParam, WPARAM wParam){
     selection.active = true;
     selectedText = getSelectedText(selection, textBuffer);
     
-    
-
     SelectObject(hdc, hOldFont);
     ReleaseDC(hwnd, hdc);
-
     
     trackCaret = true; 
     InvalidateRect(hwnd, NULL, TRUE);

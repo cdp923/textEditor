@@ -195,7 +195,7 @@ void HandleVerticalScroll(HWND hwnd, WPARAM wParam){
     if (scrollOffsetY != oldScrollOffsetY) {
         // Update scroll bar position using SetScrollInfo
         trackCaret = false; 
-        SCROLLINFO si_update;
+        SCROLLINFO si_update; 
         si_update.cbSize = sizeof(si_update);
         si_update.fMask = SIF_POS;
         si_update.nPos = scrollOffsetY;
