@@ -24,20 +24,28 @@ void ActivateSearchMode(HWND hwnd) {
     searchMatches.clear();
     currentMatchIndex = 0;
     searchCaretPos = 8;
+    
+    // Properly save current editor state
     savedCaretCol = caretCol;
     savedCaretLine = caretLine;
     savedScrollOffsetX = scrollOffsetX;
     savedScrollOffsetY = scrollOffsetY;
+    
     InvalidateRect(hwnd, NULL, TRUE);
 }
 
 void DeactivateSearchMode(HWND hwnd) {
     isSearchMode = false;
-    caretCol = 0;
-    caretLine = 0;
-    scrollOffsetX = 0;
-    scrollOffsetY = 0;
+    
+    // Restore saved editor state instead of zeroing out
+    caretCol = savedCaretCol;
+    caretLine = savedCaretLine;
+    scrollOffsetX = savedScrollOffsetX;
+    scrollOffsetY = savedScrollOffsetY;
+    
+    UpdateCaretPosition(hwnd);
     InvalidateRect(hwnd, NULL, TRUE);
+    UpdateScrollBars(hwnd);
 }
 
 void DrawSearchBox(HWND hwnd, HDC hdc) {
@@ -96,25 +104,53 @@ void DrawSearchBox(HWND hwnd, HDC hdc) {
         LineTo(hdc, 10 + textSize.cx, searchRect.bottom - 5);
     }
 }
+
 void JumpToMatch(HWND hwnd, size_t index) {
     if (index >= searchMatches.size()) return;
     
     auto [line, col] = searchMatches[index];
     caretLine = line;
-    caretCol = col+ (int)searchQuery.length();
+    caretCol = col;
     
-    // Center the match horizontally, accounting for its width
-    scrollOffsetX = std::max(0, caretCol);
+    RECT clientRect;
+    GetClientRect(hwnd, &clientRect);
     
-    // Center vertically
-    scrollOffsetY = std::max(0, line - linesPerPage / 2);
+    // Calculate available lines (accounting for search box)
+    int availableHeight = clientRect.bottom - searchBoxHeight;
+    int availableLines = availableHeight / charHeight;
     
-    // Ensure we don't scroll past the end of the line
-   
+    // Calculate available width
+    int availableWidth = clientRect.right;
+    int availableChars = availableWidth / charWidth;
+    
+    // Vertical scrolling - center the match vertically
+    int targetScrollY = line - (availableLines / 2);
+    scrollOffsetY = std::max(0, std::min(targetScrollY, (int)textBuffer.size() - availableLines));
+    
+    // Horizontal scrolling - ensure the entire match is visible
+    int matchStartCol = col;
+    int matchEndCol = col + (int)searchQuery.length();
+    
+    // If match extends beyond right edge, scroll to show the end
+    if (matchEndCol * charWidth > scrollOffsetX + availableWidth) {
+        scrollOffsetX = matchEndCol * charWidth - availableWidth + padding;
+    }
+    
+    // If match starts before left edge, scroll to show the beginning
+    if (matchStartCol * charWidth < scrollOffsetX) {
+        scrollOffsetX = std::max(0, matchStartCol * charWidth - padding); 
+    }
+    
+    // Ensure we don't scroll past the beginning
+    scrollOffsetX = std::max(0, scrollOffsetX);
+    
+    // Force immediate update and refresh
     UpdateCaretPosition(hwnd);
-    InvalidateRect(hwnd, NULL, TRUE);
     UpdateScrollBars(hwnd);
+    InvalidateRect(hwnd, NULL, TRUE);
+    UpdateWindow(hwnd);
 }
+
 void DrawSearchMatches(HDC hdc, const RECT& paintRect) {
     if (!isSearchMode || searchQuery.empty()) return;
 
@@ -126,10 +162,14 @@ void DrawSearchMatches(HDC hdc, const RECT& paintRect) {
     // Highlight current match differently (orange)
     HBRUSH hbrCurrent = CreateSolidBrush(RGB(255, 200, 100));
     
+    // Calculate visible area accounting for search box
+    int visibleHeight = paintRect.bottom - searchBoxHeight;
+    int maxVisibleLine = scrollOffsetY + (visibleHeight / charHeight);
+    
     // Draw all visible matches
     for (const auto& [line, col] : searchMatches) {
-        // Skip if line isn't visible
-        if (line < scrollOffsetY || line > scrollOffsetY + paintRect.bottom / charHeight) {
+        // Skip if line isn't visible (accounting for search box)
+        if (line < scrollOffsetY || line > maxVisibleLine) {
             continue;
         }
 
@@ -173,6 +213,7 @@ void DrawSearchMatches(HDC hdc, const RECT& paintRect) {
     DeleteObject(hbrHighlight);
     DeleteObject(hbrCurrent);
 }
+
 void FindAllMatches(HWND hwnd) {
     searchMatches.clear();
     searchQuery = searchBoxText.substr(8); // Get text after "Search: "
@@ -194,9 +235,9 @@ void FindAllMatches(HWND hwnd) {
     currentMatchIndex = 0;
     if (!searchMatches.empty()) {
         JumpToMatch(hwnd, 0); // Jump to first match
-        
     }
 }
+
 void FindNext(HWND hwnd) {
     if (searchMatches.empty()) {
         FindAllMatches(hwnd); // Find matches if none exist
@@ -218,6 +259,7 @@ void FindPrevious(HWND hwnd) {
     currentMatchIndex = (currentMatchIndex == 0) ? searchMatches.size() - 1 : currentMatchIndex - 1;
     JumpToMatch(hwnd, currentMatchIndex);
 }
+
 void HandleSearchKeyDown(HWND hwnd, WPARAM wParam) {
     switch (wParam) {
         case VK_LEFT:
@@ -236,13 +278,9 @@ void HandleSearchKeyDown(HWND hwnd, WPARAM wParam) {
                 searchCaretPos--;
                 FindAllMatches(hwnd); // Update search immediately on deletion
                 InvalidateRect(hwnd, NULL, TRUE);
-            }else if (searchBoxText == L"Search: "){
-                caretCol = 0;
-                caretLine = 0;
-                scrollOffsetX = 0;
-                scrollOffsetY = 0;
-                UpdateCaretPosition(hwnd);
-                InvalidateRect(hwnd, NULL, TRUE);
+            } else if (searchBoxText == L"Search: ") {
+                // If search box is empty, deactivate search mode
+                DeactivateSearchMode(hwnd);
             }
             break;
             
@@ -263,6 +301,7 @@ void HandleSearchKeyDown(HWND hwnd, WPARAM wParam) {
             break;
     }
 }
+
 void HandleSearchCharacterDown(HWND hwnd, wchar_t ch) {
     // Handle printable characters only
     if (ch >= 32 && ch <= 126) {
@@ -276,4 +315,3 @@ void HandleSearchCharacterDown(HWND hwnd, wchar_t ch) {
         InvalidateRect(hwnd, NULL, TRUE);
     }
 }
-
