@@ -9,7 +9,7 @@
 void characterCase(wchar_t ch, HWND hwnd, WPARAM wParam) {
     // Ensure we are within valid line bounds AND process valid input characters
     if (isSearchMode){
-        HandleSearchInput(hwnd, wParam);
+        HandleSearchCharacterDown(hwnd, ch);
     }else{
         if (ch >= 32 || ch == L'\t' || ch == L'\r' || ch == L'\b') {
             if (caretLine >= textBuffer.size()) {

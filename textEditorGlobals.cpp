@@ -13,7 +13,7 @@ bool trackCaret = true; //scroll bars not working because autoscroll
 int caretHiddenCount = 0;
 int padding = 3;    //blank space before the end of the right side
 int bufferZoneY = 2; //visible lines when scrolling back up
-int bufferZoneX = 50;
+int bufferZoneX = 50;//visible lines when deleting characters in a line
 
 std::wstring currentFilePath=L"";
 bool documentModified = false;

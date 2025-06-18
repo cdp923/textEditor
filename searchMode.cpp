@@ -12,6 +12,10 @@ std::vector<std::pair<int, int>> searchMatches;
 size_t currentMatchIndex = 0;
 int searchBoxHeight = 30;
 int searchCaretPos = 8;
+int savedCaretCol;
+int savedCaretLine;
+int savedScrollOffsetX;
+int savedScrollOffsetY;
 
 void ActivateSearchMode(HWND hwnd) {
     isSearchMode = true;
@@ -20,11 +24,19 @@ void ActivateSearchMode(HWND hwnd) {
     searchMatches.clear();
     currentMatchIndex = 0;
     searchCaretPos = 8;
+    savedCaretCol = caretCol;
+    savedCaretLine = caretLine;
+    savedScrollOffsetX = scrollOffsetX;
+    savedScrollOffsetY = scrollOffsetY;
     InvalidateRect(hwnd, NULL, TRUE);
 }
 
 void DeactivateSearchMode(HWND hwnd) {
     isSearchMode = false;
+    caretCol = 0;
+    caretLine = 0;
+    scrollOffsetX = 0;
+    scrollOffsetY = 0;
     InvalidateRect(hwnd, NULL, TRUE);
 }
 
@@ -89,14 +101,19 @@ void JumpToMatch(HWND hwnd, size_t index) {
     
     auto [line, col] = searchMatches[index];
     caretLine = line;
-    caretCol = col;
+    caretCol = col+ (int)searchQuery.length();
     
-    // Center the match in view
+    // Center the match horizontally, accounting for its width
+    scrollOffsetX = std::max(0, caretCol);
+    
+    // Center vertically
     scrollOffsetY = std::max(0, line - linesPerPage / 2);
-    scrollOffsetX = std::max(0, col - 40);
     
+    // Ensure we don't scroll past the end of the line
+   
     UpdateCaretPosition(hwnd);
     InvalidateRect(hwnd, NULL, TRUE);
+    UpdateScrollBars(hwnd);
 }
 void DrawSearchMatches(HDC hdc, const RECT& paintRect) {
     if (!isSearchMode || searchQuery.empty()) return;
@@ -180,45 +197,6 @@ void FindAllMatches(HWND hwnd) {
         
     }
 }
-void HandleSearchInput(HWND hwnd, WPARAM wParam) {
-    switch (wParam) {
-        case VK_RETURN:
-            searchQuery = searchBoxText.substr(8);
-            break;
-            
-        case VK_ESCAPE:
-            DeactivateSearchMode(hwnd);
-            break;
-            
-        case VK_LEFT:
-            if (searchCaretPos > 8) searchCaretPos--;
-            break;
-            
-        case VK_RIGHT:
-            if (searchCaretPos < searchBoxText.length()) searchCaretPos++;
-            break;
-            
-        case VK_BACK:
-            if (searchCaretPos > 8) {
-                searchBoxText.erase(searchCaretPos - 1, 1);
-                searchCaretPos--;
-            }
-            break;
-            
-        default:
-            if (wParam >= 32 && wParam <= 126) {
-                searchBoxText.insert(searchCaretPos, 1, (wchar_t)wParam);
-                searchCaretPos++;
-            }
-            break;
-    }
-    if (searchBoxText.length() > 8) {
-        FindAllMatches(hwnd);
-    }
-    InvalidateRect(hwnd, NULL, TRUE);
-    InvalidateRect(hwnd, NULL, TRUE);
-}
-
 void FindNext(HWND hwnd) {
     if (searchMatches.empty()) {
         FindAllMatches(hwnd); // Find matches if none exist
@@ -240,3 +218,62 @@ void FindPrevious(HWND hwnd) {
     currentMatchIndex = (currentMatchIndex == 0) ? searchMatches.size() - 1 : currentMatchIndex - 1;
     JumpToMatch(hwnd, currentMatchIndex);
 }
+void HandleSearchKeyDown(HWND hwnd, WPARAM wParam) {
+    switch (wParam) {
+        case VK_LEFT:
+            if (searchCaretPos > 8) searchCaretPos--;
+            InvalidateRect(hwnd, NULL, TRUE);
+            break;
+            
+        case VK_RIGHT:
+            if (searchCaretPos < searchBoxText.length()) searchCaretPos++;
+            InvalidateRect(hwnd, NULL, TRUE);
+            break;
+            
+        case VK_BACK:
+            if (searchCaretPos > 8) {
+                searchBoxText.erase(searchCaretPos - 1, 1);
+                searchCaretPos--;
+                FindAllMatches(hwnd); // Update search immediately on deletion
+                InvalidateRect(hwnd, NULL, TRUE);
+            }else if (searchBoxText == L"Search: "){
+                caretCol = 0;
+                caretLine = 0;
+                scrollOffsetX = 0;
+                scrollOffsetY = 0;
+                UpdateCaretPosition(hwnd);
+                InvalidateRect(hwnd, NULL, TRUE);
+            }
+            break;
+            
+        case VK_RETURN:
+            FindNext(hwnd);
+            break;
+            
+        case VK_ESCAPE:
+            DeactivateSearchMode(hwnd);
+            break;
+            
+        case VK_F3:
+            if (GetKeyState(VK_SHIFT) & 0x8000) {
+                FindPrevious(hwnd);
+            } else {
+                FindNext(hwnd);
+            }
+            break;
+    }
+}
+void HandleSearchCharacterDown(HWND hwnd, wchar_t ch) {
+    // Handle printable characters only
+    if (ch >= 32 && ch <= 126) {
+        searchBoxText.insert(searchCaretPos, 1, ch);
+        searchCaretPos++;
+        
+        // Update search if we have enough text
+        if (searchBoxText.length() > 8) { // "Search: " = 8 chars
+            FindAllMatches(hwnd);
+        }
+        InvalidateRect(hwnd, NULL, TRUE);
+    }
+}
+

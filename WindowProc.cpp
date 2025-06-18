@@ -132,44 +132,29 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam){
             bool ctrlPressed = (GetAsyncKeyState(VK_CONTROL) & 0x8000);
     
             if (ctrlPressed) {
-            switch (wParam) {
-                case 'C':  // Ctrl+C
-                    if (selection.active) {
-                        SendMessage(hwnd, WM_COPY, 0, 0);
-                    }
-                    break;
-                    
-                case 'V':  // Ctrl+V
-                    SendMessage(hwnd, WM_PASTE, 0, 0);
-                    break;
-                case 'Z':  // Ctrl+Z
-                    PerformUndo(hwnd);
-                    break;
-                case 'F':{
-                    ActivateSearchMode(hwnd);
-                    break;
-                    }
-                }
-            }
-            if (isSearchMode) {
                 switch (wParam) {
-                    case VK_RETURN:
-                        FindNext(hwnd);
-                        InvalidateRect(hwnd, NULL, TRUE);
-                        break;
-                    case VK_ESCAPE:
-                        DeactivateSearchMode(hwnd);
-                        InvalidateRect(hwnd, NULL, TRUE);
-                        break;
-                    case VK_F3:
-                        if (GetKeyState(VK_SHIFT) & 0x8000) {
-                            FindPrevious(hwnd);
-                        } else {
-                            FindNext(hwnd);
-                            InvalidateRect(hwnd, NULL, TRUE);
+                    case 'C':  // Ctrl+C
+                        if (selection.active) {
+                            SendMessage(hwnd, WM_COPY, 0, 0);
                         }
                         break;
-                }
+                        
+                    case 'V':  // Ctrl+V
+                        SendMessage(hwnd, WM_PASTE, 0, 0);
+                        break;
+                    case 'Z':  // Ctrl+Z
+                        PerformUndo(hwnd);
+                        break;
+                    case 'F':{
+                        ActivateSearchMode(hwnd);
+                        break;
+                        }
+                    }
+                return 0;
+            }
+            if (isSearchMode) {
+                HandleSearchKeyDown(hwnd, wParam);
+                return 0;
             }
             switch (wParam){
                 case VK_LEFT:{
@@ -304,6 +289,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam){
                     SendMessage(hwnd, WM_CLOSE, 0, 0);
                     break;
             }
+            DeactivateSearchMode(hwnd);
             // Important: don't return 0 too early if other command handlers
             // (e.g., from controls) are needed, but for menus, it's fine.
             return 0; 

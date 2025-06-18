@@ -8,11 +8,16 @@ extern std::vector<std::pair<int, int>> searchMatches;
 extern size_t currentMatchIndex;
 extern int searchBoxHeight;
 extern int searchCaretPos;
+extern int savedCaretCol;
+extern int savedCaretLine;
+extern int savedScrollOffsetX;
+extern int savedScrollOffsetY;
 
 void ActivateSearchMode(HWND hwnd);
 void DeactivateSearchMode(HWND hwnd);
 void DrawSearchBox(HWND hwnd, HDC hdc);
-void HandleSearchInput(HWND hwnd, WPARAM wParam);
+void HandleSearchKeyDown(HWND hwnd, WPARAM wParam);
+void HandleSearchCharacterDown(HWND hwnd, wchar_t ch);
 void FindAllMatches(HWND hwnd);
 void JumpToMatch(HWND hwnd, size_t index);
 void FindNext(HWND hwnd);
