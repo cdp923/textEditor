@@ -6,4 +6,6 @@
 #define ID_FILE_OPEN     40002
 #define ID_FILE_SAVE     40003
 #define ID_FILE_SAVEAS   40004
-#define ID_APP_EXIT      40005 // Or ID_FILE_EXIT, not sure
+#define ID_APP_EXIT      40005 
+
+#define ID_VIEW_INFO_BAR    5001

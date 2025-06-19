@@ -11,6 +11,7 @@
 #include "isModified.h"
 #include "cursorControls.h"
 #include "searchMode.h" //For control - F search
+#include "infoBar.h"
 
 #include <algorithm> 
 
@@ -40,6 +41,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam){
             //Gain focus immediately, so show immediately
             ShowCaret(hwnd);
             UpdateCaretPosition(hwnd);
+            InitInfoBar(hwnd);
             break;
         }
         case WM_SIZE:
@@ -47,6 +49,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam){
             calcTextMetrics(hwnd); 
             UpdateScrollBars(hwnd);
             UpdateCaretPosition(hwnd);
+            UpdateInfoBar(hwnd);
             InvalidateRect(hwnd, NULL, TRUE); 
             break;
         }
@@ -79,6 +82,9 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam){
             }
             if (isSearchMode) {
                 DrawSearchBox(hwnd, hdc);
+            }
+            if (showInfoBar) {
+                DrawInfoBar(hwnd, hdc);
             }
             if (GetFocus() == hwnd) {
                 ShowCaret(hwnd);
@@ -288,8 +294,14 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam){
                 case ID_APP_EXIT: 
                     SendMessage(hwnd, WM_CLOSE, 0, 0);
                     break;
+                case ID_VIEW_INFO_BAR:
+                    showInfoBar = !showInfoBar;
+                    ShowHideInfoBar(hwnd);
             }
-            DeactivateSearchMode(hwnd);
+            if(isSearchMode){
+                DeactivateSearchMode(hwnd);
+            }
+            
             // Important: don't return 0 too early if other command handlers
             // (e.g., from controls) are needed, but for menus, it's fine.
             return 0; 
