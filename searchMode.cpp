@@ -2,6 +2,7 @@
 #include "textEditorGlobals.h"
 #include "textMetrics.h"
 #include "updateCaretAndScroll.h"
+#include "infoBar.h"
 #include <windows.h>
 #include <algorithm>
 
@@ -116,6 +117,10 @@ void JumpToMatch(HWND hwnd, size_t index) {
     GetClientRect(hwnd, &clientRect);
     
     // Calculate available lines (accounting for search box)
+    /*InfoBarHeight
+    if(){
+
+    }*/
     int availableHeight = clientRect.bottom - searchBoxHeight;
     int availableLines = availableHeight / charHeight;
     
@@ -279,8 +284,11 @@ void HandleSearchKeyDown(HWND hwnd, WPARAM wParam) {
                 FindAllMatches(hwnd); // Update search immediately on deletion
                 InvalidateRect(hwnd, NULL, TRUE);
             } else if (searchBoxText == L"Search: ") {
-                // If search box is empty, deactivate search mode
-                DeactivateSearchMode(hwnd);
+                // If search box is empty, clear matches
+                searchQuery.clear();
+                searchMatches.clear();
+                FindAllMatches(hwnd); // Update search immediately on deletion
+                InvalidateRect(hwnd, NULL, TRUE);
             }
             break;
             

@@ -152,7 +152,11 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam){
                         PerformUndo(hwnd);
                         break;
                     case 'F':{
-                        ActivateSearchMode(hwnd);
+                        if(!isSearchMode){
+                            ActivateSearchMode(hwnd);
+                        }else{
+                            DeactivateSearchMode(hwnd);
+                        }
                         break;
                         }
                     }

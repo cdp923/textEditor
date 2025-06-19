@@ -95,7 +95,9 @@ void InitInfoBar(HWND hwnd) {
 }
 
 void ShowHideInfoBar(HWND hwnd) {
-    if (showInfoBar == false) return;
+    if (showInfoBar == false) {
+        InvalidateRect(hwnd, NULL, TRUE);
+    }else{
     
     InvalidateRect(hwnd, NULL, TRUE);
     
@@ -105,6 +107,7 @@ void ShowHideInfoBar(HWND hwnd) {
     rcClient.bottom -= infoBarHeight;
     SendMessage(hwnd, WM_SIZE, SIZE_RESTORED, 
                 MAKELPARAM(rcClient.right, rcClient.bottom));
+    }
 }
 
 RECT GetEditorClientRect(HWND hwnd) {
