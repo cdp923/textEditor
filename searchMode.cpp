@@ -53,10 +53,14 @@ void DrawSearchBox(HWND hwnd, HDC hdc) {
     RECT clientRect;
     GetClientRect(hwnd, &clientRect);
     
+    int searchBoxTop = clientRect.bottom - searchBoxHeight;
+    if (showInfoBar) {
+        searchBoxTop -= infoBarHeight;
+    }
     // Search box rectangle
     RECT searchRect = {
         0, 
-        clientRect.bottom - searchBoxHeight,
+        searchBoxTop,
         clientRect.right,
         clientRect.bottom
     };
@@ -122,6 +126,9 @@ void JumpToMatch(HWND hwnd, size_t index) {
 
     }*/
     int availableHeight = clientRect.bottom - searchBoxHeight;
+    if (showInfoBar) {
+        availableHeight -= infoBarHeight;
+    }
     int availableLines = availableHeight / charHeight;
     
     // Calculate available width
@@ -169,6 +176,9 @@ void DrawSearchMatches(HDC hdc, const RECT& paintRect) {
     
     // Calculate visible area accounting for search box
     int visibleHeight = paintRect.bottom - searchBoxHeight;
+    if (showInfoBar) {
+        visibleHeight -= infoBarHeight;
+    }
     int maxVisibleLine = scrollOffsetY + (visibleHeight / charHeight);
     
     // Draw all visible matches
