@@ -159,8 +159,13 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam){
                         }
                         break;
                         }
+                    case 'A':{
+                        showInfoBar = !showInfoBar;
+                        ShowHideInfoBar(hwnd);
+                        break;
                     }
                 return 0;
+                }
             }
             if (isSearchMode) {
                 HandleSearchKeyDown(hwnd, wParam);

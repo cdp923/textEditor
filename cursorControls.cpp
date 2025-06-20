@@ -2,6 +2,7 @@
 #include "cursorControls.h"
 #include "updateCaretAndScroll.h"
 #include "searchMode.h"
+#include "infoBar.h"
 
 #include <windows.h>
 #include <algorithm>
@@ -14,7 +15,12 @@ void mouseDownL(HWND hwnd, LPARAM lParam, WPARAM wParam) {
     if (isSearchMode) {
         RECT clientRect;
         GetClientRect(hwnd, &clientRect);
-        int searchBoxTop = clientRect.bottom - searchBoxHeight;
+        int searchBoxTop;
+        if (showInfoBar){
+            searchBoxTop = clientRect.bottom - searchBoxHeight-infoBarHeight;
+        }else{
+            searchBoxTop = clientRect.bottom - searchBoxHeight;
+        }
         
         if (mouseY > searchBoxTop) {
             // Handle search box clicks
@@ -23,15 +29,21 @@ void mouseDownL(HWND hwnd, LPARAM lParam, WPARAM wParam) {
             int buttonSize = 24;
             
             // Up button
-            if (mouseX > buttonRight - buttonSize*2 && mouseX < buttonRight - buttonSize &&
+            if (mouseX > buttonRight - buttonSize*3 && mouseX < buttonRight - buttonSize*2 &&
                 mouseY > buttonTop && mouseY < buttonTop + buttonSize) {
                 FindPrevious(hwnd);
                 return;
             }
             // Down button
-            else if (mouseX > buttonRight - buttonSize && mouseX < buttonRight &&
+            else if (mouseX > buttonRight - buttonSize*2 && mouseX < buttonRight - buttonSize &&
                      mouseY > buttonTop && mouseY < buttonTop + buttonSize) {
                 FindNext(hwnd);
+                return;
+            }
+            // Close (X) button 
+            else if (mouseX > buttonRight - buttonSize && mouseX < buttonRight &&
+                     mouseY > buttonTop && mouseY < buttonTop + buttonSize) {
+                DeactivateSearchMode(hwnd);
                 return;
             }
             // Text area click - set caret position

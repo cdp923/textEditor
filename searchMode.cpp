@@ -52,55 +52,60 @@ void DeactivateSearchMode(HWND hwnd) {
 void DrawSearchBox(HWND hwnd, HDC hdc) {
     RECT clientRect;
     GetClientRect(hwnd, &clientRect);
-    
+   
     int searchBoxTop = clientRect.bottom - searchBoxHeight;
     if (showInfoBar) {
         searchBoxTop -= infoBarHeight;
     }
     // Search box rectangle
     RECT searchRect = {
-        0, 
+        0,
         searchBoxTop,
         clientRect.right,
         clientRect.bottom
     };
-    
+   
     // Draw background
     HBRUSH bgBrush = CreateSolidBrush(RGB(240, 240, 240));
     FillRect(hdc, &searchRect, bgBrush);
-    
+   
     // Draw border
     HPEN borderPen = CreatePen(PS_SOLID, 1, RGB(180, 180, 180));
     HPEN oldPen = (HPEN)SelectObject(hdc, borderPen);
     MoveToEx(hdc, searchRect.left, searchRect.top, NULL);
     LineTo(hdc, searchRect.right, searchRect.top);
     SelectObject(hdc, oldPen);
-    
+   
     // Draw text
     SetBkMode(hdc, TRANSPARENT);
     TextOutW(hdc, 10, searchRect.top + 8, searchBoxText.c_str(), (int)searchBoxText.length());
-    
-    // Draw buttons
+   
+    // Draw buttons - Simple approach
     int buttonSize = 24;
-    int buttonRight = clientRect.right - 10;
     int buttonTop = searchRect.top + 3;
     
-    // Up button
-    RECT upBtn = {buttonRight - buttonSize*2, buttonTop, buttonRight - buttonSize, buttonTop + buttonSize};
     HBRUSH btnBrush = CreateSolidBrush(RGB(220, 220, 220));
+    
+    // Up button - rightmost
+    RECT upBtn = {clientRect.right - 80, buttonTop, clientRect.right - 56, buttonTop + buttonSize};
     FillRect(hdc, &upBtn, btnBrush);
-    DrawTextW(hdc, L"▲", -1, &upBtn, DT_CENTER | DT_VCENTER);
-    
-    // Down button
-    RECT downBtn = {buttonRight - buttonSize, buttonTop, buttonRight, buttonTop + buttonSize};
+    TextOutW(hdc, upBtn.left + 8, upBtn.top + 4, L"▲", 1);
+   
+    // Down button - middle
+    RECT downBtn = {clientRect.right - 54, buttonTop, clientRect.right - 30, buttonTop + buttonSize};
     FillRect(hdc, &downBtn, btnBrush);
-    DrawTextW(hdc, L"▼", -1, &downBtn, DT_CENTER | DT_VCENTER);
+    TextOutW(hdc, downBtn.left + 8, downBtn.top + 4, L"▼", 1);
     
+    // Close button - leftmost
+    RECT xBtn = {clientRect.right - 28, buttonTop, clientRect.right - 4, buttonTop + buttonSize};
+    FillRect(hdc, &xBtn, btnBrush);
+    TextOutW(hdc, xBtn.left + 8, xBtn.top + 4, L"X", 1);
+   
     // Cleanup
     DeleteObject(bgBrush);
     DeleteObject(borderPen);
     DeleteObject(btnBrush);
-    
+   
     // Draw caret
     if (isSearchMode) {
         SIZE textSize;
