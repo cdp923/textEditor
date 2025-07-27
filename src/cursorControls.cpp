@@ -1,8 +1,8 @@
 #define NOMINMAX
-#include "cursorControls.h"
-#include "updateCaretAndScroll.h"
-#include "searchMode.h"
-#include "infoBar.h"
+#include "../include/cursorControls.h"
+#include "../include/updateCaretAndScroll.h"
+#include "../include/searchMode.h"
+#include "../include/infoBar.h"
 
 #include <windows.h>
 #include <algorithm>

@@ -5,10 +5,10 @@
 
 #define NOMINMAX 
 
-#include "WindowProc.h" 
-#include "textEditorGlobals.h"         // For textBuffer and caret variables
-#include "textMetrics.h"            // For calcTextMetrics and font variables
-#include "updateCaretAndScroll.h"   // For UpdateCaretPosition and UpdateScrollBars
+#include "../include/WindowProc.h" 
+#include "../include/textEditorGlobals.h"         // For textBuffer and caret variables
+#include "../include/textMetrics.h"            // For calcTextMetrics and font variables
+#include "../include/updateCaretAndScroll.h"   // For UpdateCaretPosition and UpdateScrollBars
 
 #include <windows.h>
 

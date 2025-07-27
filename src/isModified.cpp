@@ -1,5 +1,5 @@
-#include "isModified.h"
-#include "textEditorGlobals.h"
+#include "../include/isModified.h"
+#include "../include/textEditorGlobals.h"
 #include <filesystem>
 
 std::vector<std::wstring> savedTextBuffer;

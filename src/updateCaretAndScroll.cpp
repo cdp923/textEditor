@@ -1,9 +1,9 @@
 #define NOMINMAX 
 
-#include "updateCaretAndScroll.h" 
-#include "textEditorGlobals.h" // For textBuffer, caretLine, caretCol, scrollOffsetX, scrollOffsetY
-#include "textMetrics.h"    // For charHeight, linesPerPage, font, maxLineWidthPixels
-#include "infoBar.h"
+#include "../include/updateCaretAndScroll.h" 
+#include "../include/textEditorGlobals.h" // For textBuffer, caretLine, caretCol, scrollOffsetX, scrollOffsetY
+#include "../include/textMetrics.h"    // For charHeight, linesPerPage, font, maxLineWidthPixels
+#include "../include/infoBar.h"
 
 #include <windows.h>
 #include <algorithm> // For std::max, std::min

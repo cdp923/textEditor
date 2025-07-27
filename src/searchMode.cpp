@@ -1,8 +1,8 @@
 #define NOMINMAX
-#include "textEditorGlobals.h"
-#include "textMetrics.h"
-#include "updateCaretAndScroll.h"
-#include "infoBar.h"
+#include "../include/textEditorGlobals.h"
+#include "../include/textMetrics.h"
+#include "../include/updateCaretAndScroll.h"
+#include "../include/infoBar.h"
 #include <windows.h>
 #include <algorithm>
 

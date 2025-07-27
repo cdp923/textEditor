@@ -1,10 +1,10 @@
-#include "characterCase.h"
-#include "textEditorGlobals.h"
-#include "updateCaretAndScroll.h"
-#include "undoStack.h"
-#include "textMetrics.h"
-#include "isModified.h"
-#include "searchMode.h"
+#include "../include/characterCase.h"
+#include "../include/textEditorGlobals.h"
+#include "../include/updateCaretAndScroll.h"
+#include "../include/undoStack.h"
+#include "../include/textMetrics.h"
+#include "../include/isModified.h"
+#include "../include/searchMode.h"
 
 void characterCase(wchar_t ch, HWND hwnd, WPARAM wParam) {
     // Ensure we are within valid line bounds AND process valid input characters

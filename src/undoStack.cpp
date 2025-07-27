@@ -1,7 +1,7 @@
 #define NOMINMAX
 
-#include "undoStack.h"
-#include "isModified.h"
+#include "../include/undoStack.h"
+#include "../include/isModified.h"
 
 std::stack<UndoAction> undoStack;
 

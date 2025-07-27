@@ -1,4 +1,4 @@
-#include "textEditorGlobals.h" 
+#include "../include/textEditorGlobals.h" 
 
 
 std::vector<std::wstring> textBuffer; 
