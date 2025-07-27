@@ -1,17 +1,17 @@
 #define NOMINMAX
-#include "WindowProc.h"
+#include "../include/WindowProc.h"
 
 
-#include "textEditorGlobals.h"      // For textBuffer, caretLine, caretCol
-#include "textMetrics.h"            // For calcTextMetrics, charHeight, font
-#include "updateCaretAndScroll.h"   // For UpdateCaretPosition, UpdateScrollBars, and scroll handlers
-#include "fileOperations.h"         // For open, save, saveAs
-#include "undoStack.h"              // For stack operations
-#include "characterCase.h"          //For characterCase
-#include "isModified.h"
-#include "cursorControls.h"
-#include "searchMode.h" //For control - F search
-#include "infoBar.h"
+#include "../include/textEditorGlobals.h"      // For textBuffer, caretLine, caretCol
+#include "../include/textMetrics.h"            // For calcTextMetrics, charHeight, font
+#include "../include/updateCaretAndScroll.h"   // For UpdateCaretPosition, UpdateScrollBars, and scroll handlers
+#include "../include/fileOperations.h"         // For open, save, saveAs
+#include "../include/undoStack.h"              // For stack operations
+#include "../include/characterCase.h"          //For characterCase
+#include "../include/isModified.h"
+#include "../include/cursorControls.h"
+#include "../include/searchMode.h" //For control - F search
+#include "../include/infoBar.h"
 
 #include <algorithm> 
 

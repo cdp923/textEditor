@@ -1,7 +1,7 @@
 #define NOMINMAX 
 
-#include "TextMetrics.h" 
-#include "TextEditorGlobals.h" // For textBuffer and maxLineWidthPixels
+#include "../include/textMetrics.h" 
+#include "../include/textEditorGlobals.h" // For textBuffer and maxLineWidthPixels
 
 #include <algorithm> 
 #include <vector>    

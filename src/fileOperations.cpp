@@ -1,9 +1,9 @@
-#include "fileOperations.h" // Include its own header for function prototypes
-#include "TextEditorGlobals.h" // For access to global variables and other utilities
-#include "textMetrics.h"       // For calcTextMetrics
-#include "updateCaretAndScroll.h" // For UpdateScrollBars, UpdateCaretPosition
-#include "isModified.h" //For setting modified tag
-#include "undoStack.h"  //To clear undo stack
+#include "../include/fileOperations.h" // Include its own header for function prototypes
+#include "../include/textEditorGlobals.h" // For access to global variables and other utilities
+#include "../include/textMetrics.h"       // For calcTextMetrics
+#include "../include/updateCaretAndScroll.h" // For UpdateScrollBars, UpdateCaretPosition
+#include "../include/isModified.h" //For setting modified tag
+#include "../include/undoStack.h"  //To clear undo stack
 
 #include <fstream>   // For std::wifstream, std::wofstream
 #include <commdlg.h> // For GetOpenFileNameW, GetSaveFileNameW

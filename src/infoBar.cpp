@@ -1,5 +1,5 @@
-#include "infoBar.h"
-#include "textEditorGlobals.h"
+#include "../include/infoBar.h"
+#include "../include/textEditorGlobals.h"
 #include <windows.h>
 
 bool showInfoBar = true;
